@@ -4,7 +4,7 @@ Tensorflow deep learning network for Spitzer time series observations trained on
 
 Spitzer Time Series Observations (TSO) have been riddled with complex mutlidimensional correlations over time.  These correlations strongly interfere with exoplanet analysis and have inhibited the significant reproducibility for exoplanet observations (Ingalls et al 2017). 
 
-Several important exoplanet research papers have been published that developed non-linear anlaysis methods to mitigate these correlated signals (Ballard et al 2010; Stevenson et al 2010; Fraine et al 2013; Lewis et al. 2013; Deming et al. 2015; Evens et al 2015; Morello et al. 2016; and Krick et al 2016).  For a full discussion of comparing these methods side-by-side, see Ingalls et al. 2016.
+Several important exoplanet research papers have been published that developed non-linear anlaysis methods to mitigate these correlated signals (Ballard et al 2010; Stevenson et al 2010; Fraine et al 2013; Lewis et al. 2013; Deming et al. 2015; Evans et al 2015; Morello et al. 2016; and Krick et al 2016).  For a full discussion of comparing these methods side-by-side, see Ingalls et al. 2016.
 
 The end result of these comparative analysis is that machine learning is a robust, but complicated method for interpreting and mitigating correlated noise signals.  Ingalls+2016 particularly focused on reproducibility (real world data) and accuracy (synthetic data). This approach revealed that wavelet+ICA (independent component analysis) provided a dramatic improvement over other methods. Notebly, Gaussian Processes did not perfrom siginficanlty better than other methods, and failed at most reproducibility metrics.
 
@@ -44,6 +44,15 @@ We adapted the notebook from Sumit Kuthari to include our Spitzer calibration ob
 6) Background flux over time
 7) Data Number Peaks
 8) t_cernox
+
+**Our DLN analysis has one output feature set:**
+1) Flux ove time: assuming that the calibrator star does not vary on timescales relevant to this analysis, a resulting flat residuals would be the most optimal solution for processing existing and future Spitzer TSO observations.
+
+**Our Preprocessing steps**
+1) Jessica Krick ran a 4-sigma outlier rejection algorithm that removed all samples that deviate from a (purposefully flawed) 4-sigma threshold.  The remaining data is Normal to within reason.
+2) We normalize the 9 pixel vectors: The 9 pixel values are stored in raw electrons per sec; but need to be normalized to remove any astrophysical features that can be modeled after the systematics are mitigated.
+3) Scikit-learn MinMaxScaler: DLNs nominally expect that all feature values exist between 0 and 1; so we used the MinMaxScalar to set all values from their intrinsic levels to span 0-1.  Because J.Krick performed a robust outlier rejection -- and the values obey reasonable Normality -- these vectors should not suffer from poor scaling issues from outliers.
+4) The flux vector ('output') was also outlier rejectiong and MinMax scaled, which is nominally expected from most DLNs algorithms.
 
 **Our next steps are to choose DLN parameters, such as:**
 1) Dropout ratio (currently 50%)
