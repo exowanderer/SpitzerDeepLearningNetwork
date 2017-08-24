@@ -68,4 +68,6 @@ Our results are compared using testing accuracy as well R-squared values.
 
 **So good So far**
 
-Using only the Kaggle (Sumit Kuthari) notebook as is, we were able to achieve R-square = 99.7% with the test (unused) values. We are trying all of the above methods to minimize overfitting and optimize feature selection.
+Using only the Kaggle (Sumit Kuthari) notebook as is, we were able to achieve R-square = 99.7% with the test (unused) values. Moreover, it seems that the testing residuals from our DLN using ReLU are symmetric, while those from Tanh and Sigmoid tend to under estimate or over estimate -- only a small percentage -- respectively.
+
+We are trying all of the above methods to minimize overfitting and optimize feature selection.
