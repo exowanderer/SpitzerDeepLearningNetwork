@@ -74,20 +74,47 @@ We are trying all of the above methods to minimize overfitting and optimize feat
 
 Notably after introducing dropout=0.5 (50% dropped neurons) -- used to minimize overfitting -- the test R-squared changed dramatically: 
 
-- ReLU:    droupout=0: 99.7%   -- droupout=0.5:  -42%
-- Sigmoid: droupout=0: 99.7%   -- droupout=0.5: -271%
-- Tanh:    droupout=0: 99.5%   -- droupout=0.5:  +85%
+**Dropout = 50%; AdaGrad; 50k iterations**
+
+| Activation  | Validation  | R-Squared |
+| Function    | Accuracy    |           |
+| ----------- | ----------- | --------- |
+| ReLU        |    99.7%    |   -42%    |
+| Sigmoid     |    99.7%    |  -271%    |
+| Tanh        |    99.5%    |   +85%    |
 
 At the same time, the validation/training loss improved significantly (a sign of limited overfitting).
 
-- ReLU:    droupout=0: 4.8   -- droupout=0.5: 0.743
-- Sigmoid: droupout=0: 42.2  -- droupout=0.5: 0.941
-- Tanh:    droupout=0: 3.9   -- droupout=0.5: 0.159
+
+**Compring Dropout with No Dropouts; AdaGrad; 50k iterations**
+
+| Activation  | Val_acc / Train_acc   | Val_acc / Train_acc    |
+| Function    | Ratio without dropout | Ratio with 50% dropout |
+| ----------- | --------------------- | ---------------------- |
+| ReLU        |           4.8         |         0.743          |
+| Sigmoid     |          42.2         |         0.941          |
+| Tanh        |           3.9         |         0.159          |
+
+**Validation accuracy with 50% dropouts**
 
 Moreover, the validation accuracy is more believable with Dropout=0.5: 
 
-- ReLU:    droupout=0: 99.997 -- droupout=0.5: 99.44
-- Sigmoid: droupout=0: 99.927 -- droupout=0.5: 98.58
-- Tanh:    droupout=0: 99.993 -- droupout=0.5: 99.96
+| Activation  | Validation Accuracy   | Validation Accuracy    |
+| Function    | Ratio without dropout | Ratio with 50% dropout |
+| ----------- | --------------------- | ---------------------- |
+| ReLU        |        99.997%        |         99.44%         |
+| Sigmoid     |        99.927%        |         98.58%         |
+| Tanh        |        99.993%        |         99.96%         |
+
+**Using AdaM with 100k and 50% Dropouts**
 
 Because it's possible that the training sessions had not converged, we tested new chains using an AdaM optimizer for 100k iterations. The results did impove on all accounts, except a marginal decrease in the R-squared test for Tanh.
+
+| Activation  | Validation  | R-Squared |
+| Function    | Accuracy    |           |
+| ----------- | ----------- | --------- |
+| ReLU        |    99.58%   |   30.82%  |
+| Sigmoid     |    99.87%   |   34.38%  |
+| Tanh        |    99.96%   |   80.20%  |
+
+The top two R-Squared values are significantly improved, which implies that the 50k chains with AdaGrad indeed had not converged.  The third R-squared value is slightly lower than previously, but this could also be a lack of convergence with 50k iterations of AdaGrad (previous chain).
