@@ -59,6 +59,7 @@ We adapted the notebook from Sumit Kuthari to include our Spitzer calibration ob
 2) Optimizer (currently Adagrad)
 3) number of hidden layers (currently 2)
 4) number of units per layer (current 10 & 10)
+5) preprocessing / scaling steps; notably, we could try StandardScaler instead of MinMaxScaler
 
 **Following this, we will start to turn off features and compare results**
 
