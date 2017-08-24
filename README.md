@@ -77,8 +77,8 @@ Notably after introducing dropout=0.5 (50% dropped neurons) -- used to minimize 
 **Dropout = 50%; AdaGrad; 50k iterations**
 
 | Activation  | Validation  | R-Squared |
-| Function    | Accuracy    |           |
 | ----------- | ----------- | --------- |
+| **Function**    | **Accuracy**    |           |
 | ReLU        |    99.7%    |   -42%    |
 | Sigmoid     |    99.7%    |  -271%    |
 | Tanh        |    99.5%    |   +85%    |
@@ -89,8 +89,8 @@ At the same time, the validation/training loss improved significantly (a sign of
 **Compring Dropout with No Dropouts; AdaGrad; 50k iterations**
 
 | Activation  | Val_acc / Train_acc   | Val_acc / Train_acc    |
-| Function    | Ratio without dropout | Ratio with 50% dropout |
 | ----------- | --------------------- | ---------------------- |
+| **Function**    | **Ratio without dropout** | **Ratio with 50% dropout** |
 | ReLU        |           4.8         |         0.743          |
 | Sigmoid     |          42.2         |         0.941          |
 | Tanh        |           3.9         |         0.159          |
@@ -100,8 +100,8 @@ At the same time, the validation/training loss improved significantly (a sign of
 Moreover, the validation accuracy is more believable with Dropout=0.5: 
 
 | Activation  | Validation Accuracy   | Validation Accuracy    |
-| Function    | Ratio without dropout | Ratio with 50% dropout |
 | ----------- | --------------------- | ---------------------- |
+| **Function**    | **Ratio without dropout** | **Ratio with 50% dropout** |
 | ReLU        |        99.997%        |         99.44%         |
 | Sigmoid     |        99.927%        |         98.58%         |
 | Tanh        |        99.993%        |         99.96%         |
@@ -111,8 +111,8 @@ Moreover, the validation accuracy is more believable with Dropout=0.5:
 Because it's possible that the training sessions had not converged, we tested new chains using an AdaM optimizer for 100k iterations. The results did impove on all accounts, except a marginal decrease in the R-squared test for Tanh.
 
 | Activation  | Validation  | R-Squared |
-| Function    | Accuracy    |           |
 | ----------- | ----------- | --------- |
+| **Function**    | **Accuracy**    |           |
 | ReLU        |    99.58%   |   30.82%  |
 | Sigmoid     |    99.87%   |   34.38%  |
 | Tanh        |    99.96%   |   80.20%  |
