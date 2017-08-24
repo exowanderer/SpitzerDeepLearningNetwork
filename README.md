@@ -66,8 +66,8 @@ We adapted the notebook from Sumit Kuthari to include our Spitzer calibration ob
 Our results are compared using testing accuracy as well R-squared values.
 
 
-**So good So far**
+**So far So good**
 
 Using only the Kaggle (Sumit Kuthari) notebook as is, we were able to achieve R-square = 99.7% with the test (unused) values. Moreover, it seems that the testing residuals from our DLN using ReLU are symmetric, while those from Tanh and Sigmoid tend to under estimate or over estimate -- only a small percentage -- respectively.
 
-We are trying all of the above methods to minimize overfitting and optimize feature selection.
+We are trying all of the above methods to minimize overfitting and optimize feature selection. Notably after introducing dropout=0.5 (50% dropped neurons) -- used to minimize overfitting -- the test R-squared chaged dramatically: ReLu=-42%; Tanh=85%; Sigmoid=-271%.  It's possible that the training sessions has not yet converged. We will test this further now using the AdaM optimizer.
