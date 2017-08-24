@@ -117,4 +117,6 @@ Because it's possible that the training sessions had not converged, we tested ne
 | Sigmoid         |    99.87%    |   34.38%  |           0.357            |
 | Tanh            |    99.96%    |   80.20%  |           0.182            |
 
-The top two R-Squared values are significantly improved, which implies that the 50k chains with AdaGrad indeed had not converged.  The third R-squared value is slightly lower than previously, but this could also be a lack of convergence with 50k iterations of AdaGrad (previous chain).
+- The top two R-Squared values are significantly improved, which implies that the 50k chains with AdaGrad indeed had not converged.  
+- The third R-squared value is slightly lower than previously, but this could also be a lack of convergence with 50k iterations of AdaGrad (previous chain). 
+- Lastly, the Sigmoid function -- not usually considered a contender -- was significantly imporve with more iterations and a faster optimzier (AdaM)
