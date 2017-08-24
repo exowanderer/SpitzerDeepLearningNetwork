@@ -90,4 +90,4 @@ Moreover, the validation accuracy is more believable with Dropout=0.5:
 - Sigmoid: droupout=0: 99.927 -- droupout=0.5: 98.58
 - Tanh:    droupout=0: 99.993 -- droupout=0.5: 99.96
 
-Because it's possible that the training sessions has not yet converged, we will next test this using an AdaM optimizer.
+Because it's possible that the training sessions had not converged, we tested new chains using an AdaM optimizer for 100k iterations. The results did impove on all accounts, except a marginal decrease in the R-squared test for Tanh.
