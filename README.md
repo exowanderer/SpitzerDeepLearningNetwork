@@ -84,4 +84,10 @@ At the same time, the validation/training loss improved significantly (a sign of
 - Sigmoid: droupout=0: 42.2  -- droupout=0.5: 0.941
 - Tanh:    droupout=0: 3.9   -- droupout=0.5: 0.159
 
-It's possible that the training sessions has not yet converged. We will test this further now using the AdaM optimizer.
+Moreover, the validation accuracy is more believable with Dropout=0.5: 
+
+- ReLU:    droupout=0: 99.997 -- droupout=0.5: 99.44
+- Sigmoid: droupout=0: 99.927 -- droupout=0.5: 98.58
+- Tanh:    droupout=0: 99.993 -- droupout=0.5: 99.96
+
+Because it's possible that the training sessions has not yet converged, we will next test this using an AdaM optimizer.
