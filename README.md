@@ -65,5 +65,7 @@ We adapted the notebook from Sumit Kuthari to include our Spitzer calibration ob
 
 Our results are compared using testing accuracy as well R-squared values.
 
+
 **So good So far**
-Using only the Kaggle (Sumit Kuthari) notebook as is, we were able to achieve R-square = 99.7% with the test (unused) values.
+
+Using only the Kaggle (Sumit Kuthari) notebook as is, we were able to achieve R-square = 99.7% with the test (unused) values. We are trying all of the above methods to minimize overfitting and optimize feature selection.
