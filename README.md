@@ -110,11 +110,11 @@ Moreover, the validation accuracy is more believable with Dropout=0.5:
 
 Because it's possible that the training sessions had not converged, we tested new chains using an AdaM optimizer for 100k iterations. The results did impove on all accounts, except a marginal decrease in the R-squared test for Tanh.
 
-| Activation  | Validation  | R-Squared |
-| ----------- | ----------- | --------- |
-| **Function**    | **Accuracy**    |           |
-| ReLU        |    99.58%   |   30.82%  |
-| Sigmoid     |    99.87%   |   34.38%  |
-| Tanh        |    99.96%   |   80.20%  |
+| Activation      | Validation   | R-Squared | Val_acc / Train_acc        |
+| -----------     | -----------  | --------- | -------------------------- |
+| **Function**    | **Accuracy** |           | **Ratio with 50% dropout** |
+| ReLU            |    99.58%    |   30.82%  |           0.761            |
+| Sigmoid         |    99.87%    |   34.38%  |           0.357            |
+| Tanh            |    99.96%    |   80.20%  |           0.182            |
 
 The top two R-Squared values are significantly improved, which implies that the 50k chains with AdaGrad indeed had not converged.  The third R-squared value is slightly lower than previously, but this could also be a lack of convergence with 50k iterations of AdaGrad (previous chain).
