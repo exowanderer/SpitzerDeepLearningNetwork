@@ -134,7 +134,7 @@ We tested the major three DLN activation functions (relu, sigmoid, tanh) with a 
 ---
 **Feature Optimization Dimensionality Reduction**
 
-The next step is feature optimization.  This could include dimensionality reduction (i.e. PCA) or feature selection (i.e. feature importance).  
+The next step is feature optimization.  This could include dimensionality reduction (i.e. PCA) or feature selection (i.e. feature importance).  Note that the features have already been outlier rejected (cleaned) and MinMax scaled (0 to 1).
 
 Now we've expanded the previous DLN approach to include both Random Forests and PCA to pre-select or transform, respectively, the data into a more linearly separable hyperspace.
 
