@@ -129,3 +129,17 @@ We tested the major three DLN activation functions (relu, sigmoid, tanh) with a 
 2) A metric that we made up is the ratio of the validation loss to the training loss; a number close to one would imply a lack of over-fitting
 3) The R-squared test is another way to measure over-fitting, but also provides a metric for the balance of the training set.
 4) The symmetric of the residuals: by plotting the test and predicted on the same figure and the residuals on another, we can "see" if the the predictions match the samples. So far, it seems that ReLU produces the most symmetric residuals; but not always the best validation accuracy or R-sqaured values.
+
+
+---
+**Feature Optimization Dimensionality Reduction**
+
+The next step is feature optimization.  This could include dimensionality reduction (i.e. PCA) or feature selection (i.e. feature importance).  
+
+Now we've expanded the previous DLN approach to include both Random Forests and PCA to pre-select or transform, respectively, the data into a more linearly separable hyperspace.
+
+1) Using PCA, and assuming that we want to capture at least 95% of the variance, we have shown that only 9 CPA compoenents are necessary to inject in the DLN.  That reduces the feature space from 21 to 9.
+
+2) Using Random Forests, we have also found that 9 features are necessary to capture at least 95% of the feature importance.
+
+These metrics are not connected; the number of features should not be interpreted as though the PCA is identifying the same features as the Random Forest. But both methods do agree that only 40% of the features are necessary to capture the vast majority of the information in the feature set.
