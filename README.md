@@ -120,3 +120,12 @@ Because it's possible that the training sessions had not converged, we tested ne
 - The top two R-Squared values are significantly improved, which implies that the 50k chains with AdaGrad indeed had not converged.  
 - The third R-squared value is slightly lower than previously, but this could also be a lack of convergence with 50k iterations of AdaGrad (previous chain). 
 - Lastly, the Sigmoid function -- not usually considered a contender -- was significantly imporve with more iterations and a faster optimzier (AdaM)
+
+---
+
+We tested the major three DLN activation functions (relu, sigmoid, tanh) with a 2 and 3 layers (butterfly architecture: 10-10 & 10-5-10). We used dropout=0.5 for regularization and with excessive iterations (100k) to ensure convergence. We then compared four metrics for 'success'
+
+1) Validation accuracy: by training on 40% of the data and evaluating the MSE with a separate 40% of the data, we consisistently found that the validation accuracy was >99%.
+2) A metric that we made up is the ratio of the validation loss to the training loss; a number close to one would imply a lack of over-fitting
+3) The R-squared test is another way to measure over-fitting, but also provides a metric for the balance of the training set.
+4) The symmetric of the residuals: by plotting the test and predicted on the same figure and the residuals on another, we can "see" if the the predictions match the samples. So far, it seems that ReLU produces the most symmetric residuals; but not always the best validation accuracy or R-sqaured values.
