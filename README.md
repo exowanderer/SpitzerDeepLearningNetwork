@@ -168,7 +168,7 @@ Fourth: weakly train the networks. Run for 10k iterations w/ Adam optimizer and 
 
 Fifth: Ensemble prediction = weighted average of individual predictions.
 
-Justification: By combining multiple, weak, small networks into a network of networks, the algorithm will act like a random forest of deep learning networks.  Given the enforced symmetry into a butterfly structure, I'll call this a "Flock of Butterflies" method of FoB -- or Farfalla, because of Edde Sands.
+Justification: By combining multiple, weak, small networks into a network of networks, the algorithm will act like a random forest of deep learning networks.  Given the enforced symmetry into a butterfly structure, I'll call this a "Flock of Butterflies" method of FoB -- or Farfalle.
 
 **How Many DLNs will that take**
 
