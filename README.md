@@ -144,6 +144,8 @@ Now we've expanded the previous DLN approach to include both Random Forests and 
 
 These metrics are not connected; the matching number of features should not be interpreted as though the PCA is identifying the same features as the Random Forest. But both methods do agree that only 40% of the features are necessary to capture the vast majority of the information in the feature set.
 
+---
+
 **Ensemble learning idea**
 
 Build 100 DLNs with 10k iterations (that's short) over bootstrap with replacement samplings. Each one build a random combination of 2 - 5 layers, with 2 - nFeatures units per layer. Symmetry will be enforced; but this is an assumption.
