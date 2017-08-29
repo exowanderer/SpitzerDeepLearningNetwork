@@ -148,7 +148,7 @@ These metrics are not connected; the matching number of features should not be i
 
 **Ensemble learning idea**
 
-Build 100 DLNs with 10k iterations (that's short) over bootstrap with replacement samplings. Each one build a random combination of 2 - 5 layers, with 2 - nFeatures units per layer. Symmetry will be enforced; but this is an assumption.
+Build 100+ DLNs with 10k iterations (that's short) over bootstrap with replacement samplings. Each one build a random combination of 2 - 5 layers, with 2 - nFeatures units per layer. Symmetry will be enforced; but this is an assumption.
 
 First: Randomize samples with replacement to generate bootstrapped dataset with out of bag error handling.
 
