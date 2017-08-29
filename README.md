@@ -191,4 +191,4 @@ With ~20 minutes to train 10k iterations per DLN, will take ~144 hours or ~6 day
 
 Using a genetic style algorithm, we will train a medium sized set of butterflies (small, weakly trained, symmetric DLNs), 'keep' the butterfly closest to the ensemble. It is assumed that the butterfly closest to the ensemble weight average is a more fit individual per species at reproducing the goal -- a stronger ensemble.
 
-The result is expected to be a set of 4 (or 8) strongly trained, small symmetric DLNs that float around the evolved ensemble prediction. The 4 evolved butterflies have been equivalently trained for nMaxIterations.
+The result is expected to be a set of 4 (or 8) strongly trained, small symmetric DLNs that float around the evolved ensemble prediction. The 4 evolved butterflies would have been equivalently trained for nMaxIterations.
