@@ -146,24 +146,26 @@ These metrics are not connected; the matching number of features should not be i
 
 ---
 
-**Ensemble learning idea**
+**Ensemble Deep Learning Idea**
 
 Build 100+ DLNs with 10k iterations (that's short) over bootstrap with replacement samplings. Each one build a random combination of 2 - 5 layers, with 2 - nFeatures units per layer. Symmetry will be enforced; but this is an assumption.
 
 First: Randomize samples with replacement to generate bootstrapped dataset with out of bag error handling.
 
-Second: Randomly design the network architecture:
+Second: Randomly choose an activation function: sigmoid, tanh, relu, conv1d + max pooling. 
+   - defines genus of the butterflies
 
-1) Randomly choose nLayers
-2) Randomly choose nUnits0 in innermost layer
-3) (a) If nLayers is even: set nUnits1 = nUnits0
-   (b) If nLyaers is odd:  Randomly choose nUnits1 from nUnits0 - nFeatures
-4) Set nUnits_n1 = nUnits1 (enforced butterfly structure)
+Third: Randomly design the network architecture:
+
+1) Randomly choose nLayers {2 to 5}
+2) Randomly choose nUnits0 in innermost layer {2 to (nFeatures - nLayers)}
+   - steps 1 and 2 define the butterfly's species
+3) (a) If nLayers is even: set nUnits_layer1 = nUnits_layer0
+   (b) If nLayers is odd:  Randomly choose nUnits_layer1 from {nUnits_layer to nFeatures}
+4) Set nUnits_layer_n1 = nUnits_layer1 (= enforces butterfly structure)
 5) Repeat steps 4 & 5 until nLayers is reached
 
-Third: Randomly choose an activation function: sigmoid, tanh, relu, conv1d + max pooling.
-
-Fourth: weakly train this network. Run for 10k iterations w/ Adam optimizer and no dropouts (regularization done by ensemble).
+Fourth: weakly train the networks. Run for 10k iterations w/ Adam optimizer and no dropouts (regularization done by ensemble).
 
 Fifth: Ensemble prediction = weighted average of individual predictions.
 
