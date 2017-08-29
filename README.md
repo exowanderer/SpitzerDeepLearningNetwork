@@ -152,8 +152,7 @@ Build 100+ DLNs with 10k iterations (that's short) over bootstrap with replaceme
 
 First: Randomize samples with replacement to generate bootstrapped dataset with out of bag error handling.
 
-Second: Randomly choose an activation function: sigmoid, tanh, relu, conv1d + max pooling. 
-   - defines genus of the butterflies
+Second: Randomly choose an activation function: sigmoid, tanh, relu, conv1d + max pooling - defines the genus of the butterflies
 
 Third: Randomly design the network architecture:
 
