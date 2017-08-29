@@ -159,9 +159,33 @@ Second: Randomly design the network architecture:
 4) Set nUnits_n1 = nUnits1 (enforced butterfly structure)
 5) Repeat steps 4 & 5 until nLayers is reached
 
-Third: weakly train this network. Run for 10k iterations w/ Adam optimizer and no dropouts (regularization done by ensemble).
+Third: Randomly choose an activation function: sigmoid, tanh, relu, conv1d + max pooling.
 
-Fourth: Ensemble prediction = weighted average of individual predictions.
+Fourth: weakly train this network. Run for 10k iterations w/ Adam optimizer and no dropouts (regularization done by ensemble).
+
+Fifth: Ensemble prediction = weighted average of individual predictions.
 
 Justification: By combining multiple, weak, small networks into a network of networks, the algorithm will act like a random forest of deep learning networks.  Given the enforced symmetry into a butterfly structure, I'll call this a "Flock of Butterflies" method of FoB -- or Farfalla, because of Edde Sands.
+
+**How Many DLNs will that take**
+
+- 10 for each activation function
+- 10 for each set of layers (2,3,4,5)
+
+10 * (10 + 10 + 10 + 10) = 400 DLNs
+
+With ~20 minutes to train 10k iterations per DLN, will take ~144 hours or ~6 days. 
+
+**Genetic adaption**
+
+1) Train two of every species of butterfly (8 butterflies), make an ensemble prediction, keep the butterfly (per species) whose individual predictions are closest to the ensemble prediction (use maximum entropy, or MSE).
+2) Randomly generate a new butterfly per species with small modifications (+/- 1 unit per layer; +/- one layer) 
+3) Retrain these 8 butterflies
+4) Repeat steps 2 & 3 until "convergence".
+   - either choose to iterate for nGenerations
+   - or choose to iterate until "enough" butterflies have been re-trained for nMaxIterations (~100k; or 10 generations)
+
+Using a genetic style algorithm, we will train a medium sized set of butterflies (small, weakly trained, symmetric DLNs), 'keep' the butterfly closest to the ensemble. It is assumed that the butterfly closest to the ensemble weight average is a more fit individual per species at reproducing the goal -- a stronger ensemble.
+
+The result is expected to be a set of 4 (or 8) strongly trained, small symmetric DLNs that float around the evolved ensemble prediction.
 
