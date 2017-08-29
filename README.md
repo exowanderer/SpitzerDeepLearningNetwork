@@ -143,3 +143,25 @@ Now we've expanded the previous DLN approach to include both Random Forests and 
 2) Using Random Forests, we have also found that 9 features are necessary to capture at least 95% of the feature importance.
 
 These metrics are not connected; the matching number of features should not be interpreted as though the PCA is identifying the same features as the Random Forest. But both methods do agree that only 40% of the features are necessary to capture the vast majority of the information in the feature set.
+
+**Ensemble learning idea**
+
+Build 100 DLNs with 10k iterations (that's short) over bootstrap with replacement samplings. Each one build a random combination of 2 - 5 layers, with 2 - nFeatures units per layer. Symmetry will be enforced; but this is an assumption.
+
+First: Randomize samples with replacement to generate bootstrapped dataset with out of bag error handling.
+
+Second: Randomly design the network architecture:
+
+1) Randomly choose nLayers
+2) Randomly choose nUnits0 in innermost layer
+3) (a) If nLayers is even: set nUnits1 = nUnits0
+   (b) If nLyaers is odd:  Randomly choose nUnits1 from nUnits0 - nFeatures
+4) Set nUnits_n1 = nUnits1 (enforced butterfly structure)
+5) Repeat steps 4 & 5 until nLayers is reached
+
+Third: weakly train this network. Run for 10k iterations w/ Adam optimizer and no dropouts (regularization done by ensemble).
+
+Fourth: Ensemble prediction = weighted average of individual predictions.
+
+Justification: By combining multiple, weak, small networks into a network of networks, the algorithm will act like a random forest of deep learning networks.  Given the enforced symmetry into a butterfly structure, I'll call this a "Flock of Butterflies" method of FoB -- or Farfalla, because of Edde Sands.
+
