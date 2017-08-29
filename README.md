@@ -160,7 +160,7 @@ Third: Randomly design the network architecture:
 2) Randomly choose nUnits0 in innermost layer {2 to (nFeatures - nLayers)}
    - steps 1 and 2 define the butterfly's species
 3) (a) If nLayers is even: set nUnits_layer1 = nUnits_layer0
-   (b) If nLayers is odd:  Randomly choose nUnits_layer1 from {nUnits_layer to nFeatures}
+   (b) If nLayers is odd:  Randomly choose nUnits_layer1 from {nUnits_layer0 to nFeatures}
 4) Set nUnits_layer_n1 = nUnits_layer1 (= enforces butterfly structure)
 5) Repeat steps 4 & 5 until nLayers is reached
 
