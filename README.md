@@ -181,7 +181,8 @@ With ~20 minutes to train 10k iterations per DLN, will take ~144 hours or ~6 day
 **Genetic adaption**
 
 1) Train two of every species of butterfly (8 butterflies), make an ensemble prediction, keep the butterfly (per species) whose individual predictions are closest to the ensemble prediction (use maximum entropy, or MSE).
-2) Randomly generate a new butterfly per species with small modifications (+/- 1 unit per layer; +/- one layer) 
+2) Randomly generate a new butterfly per species with small modifications (+/- 1 unit per layer; +/- one layer)
+   -- set the new layers (low probability) and units (medium probability) with random samples from nearby units mean & std
 3) Retrain these 8 butterflies
 4) Repeat steps 2 & 3 until "convergence".
    - either choose to iterate for nGenerations
@@ -189,5 +190,4 @@ With ~20 minutes to train 10k iterations per DLN, will take ~144 hours or ~6 day
 
 Using a genetic style algorithm, we will train a medium sized set of butterflies (small, weakly trained, symmetric DLNs), 'keep' the butterfly closest to the ensemble. It is assumed that the butterfly closest to the ensemble weight average is a more fit individual per species at reproducing the goal -- a stronger ensemble.
 
-The result is expected to be a set of 4 (or 8) strongly trained, small symmetric DLNs that float around the evolved ensemble prediction.
-
+The result is expected to be a set of 4 (or 8) strongly trained, small symmetric DLNs that float around the evolved ensemble prediction. The 4 evolved butterflies have been equivalently trained for nMaxIterations.
