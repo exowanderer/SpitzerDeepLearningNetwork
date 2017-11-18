@@ -139,7 +139,7 @@ spitzerCalRawData     = pd.read_csv(spitzerCalFilename)
 features_SSscaled, labels_SSscaled = setup_features(dataRaw    = spitzerCalRawData, 
                                                     notFeatures= spitzerCalNotFeatures, 
                                                     transformer= None, 
-                                                    scaler     = StandardScaler(), 
+                                                    scaler     = StandardScaler, 
                                                     verbose    = False,
                                                     returnAll  = None)
 
@@ -190,7 +190,7 @@ pca_cal_features_SSscaled, labels_SSscaled, spitzerCalRawData, \
     pca_trnsfrmr, label_sclr, feature_sclr = setup_features(dataRaw    = spitzerCalRawData, 
                                                             notFeatures= spitzerCalNotFeatures, 
                                                             transformer= None, 
-                                                            scaler     = StandardScaler(), 
+                                                            scaler     = StandardScaler, 
                                                             verbose    = False,
                                                             returnAll  = True)
 
@@ -248,7 +248,7 @@ print('Performing ICA', end=" ")
 ica_cal_feature_set  = setup_features(dataRaw    = spitzerCalRawData, 
                                       notFeatures= spitzerCalNotFeatures, 
                                       transformer= FastICA(), 
-                                      scaler     = StandardScaler(), 
+                                      scaler     = StandardScaler, 
                                       verbose    = False, 
                                       returnAll  = 'simple')
 
