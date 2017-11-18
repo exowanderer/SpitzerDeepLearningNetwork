@@ -206,7 +206,6 @@ joblib.dump(feature_sclr, 'spitzerCalFeatureScaler_fit.save')
 # Need to Transform the Scaled Features based off of the calibration distribution
 joblib.dump(pca_trnsfrmr, 'spitzerCalFeaturePCA_trnsfrmr.save')
 
-spitzerCalPCA_fit.save
 print(len(pca_cal_feature_set))
 print('took {} seconds'.format(time() - start))
 
