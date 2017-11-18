@@ -354,7 +354,7 @@ randForest_RFI_PCA = RandomForestRegressor( n_estimators=nTrees,
                                             min_weight_fraction_leaf=0.0, 
                                             max_features='auto', 
                                             max_leaf_nodes=None, 
-                                            bootstrap=True
+                                            bootstrap=True,
                                             oob_score=True, 
                                             n_jobs=-1, 
                                             random_state=42, 
