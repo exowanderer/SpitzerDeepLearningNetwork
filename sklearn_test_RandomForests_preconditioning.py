@@ -92,11 +92,11 @@ def predict_with_scaled_transformer(features, labels, transformer, label_scaler,
             with respect to the calibration data distributions
         
         Args:
-            features (nD-array): The first parameter.
-            labels   (1D-array): The second parameter.
-            transformer (int): The first parameter.
+            features  (nD-array): Array of input raw features.
+            labels    (1D-array): The second parameter.
+            transformer    (int): The first parameter.
             label_scaler   (str): The second parameter.
-            feature_scaler   (str): The second parameter.
+            feature_scaler (str): The second parameter.
         Returns:
             features_scaled_transformed, labels_scaled
 
