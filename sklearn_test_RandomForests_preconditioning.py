@@ -206,7 +206,7 @@ joblib.dump(feature_sclr, 'spitzerCalFeatureScaler_fit.save')
 # Need to Transform the Scaled Features based off of the calibration distribution
 joblib.dump(pca_trnsfrmr, 'spitzerCalFeaturePCA_trnsfrmr.save')
 
-print(len(pca_cal_feature_set))
+print(len(pca_cal_features_SSscaled))
 print('took {} seconds'.format(time() - start))
 
 randForest_PCA = RandomForestRegressor( n_estimators=nTrees, 
@@ -224,13 +224,13 @@ randForest_PCA = RandomForestRegressor( n_estimators=nTrees,
                                         verbose=0, 
                                         warm_start=True)
 
-print(pca_cal_feature_set.shape, labels_SSscaled.shape)
+print(pca_cal_features_SSscaled.shape, labels_SSscaled.shape)
 
 start=time()
-randForest_PCA.fit(pca_cal_feature_set, labels_SSscaled)
+randForest_PCA.fit(pca_cal_features_SSscaled, labels_SSscaled)
 
 randForest_PCA_oob = randForest_PCA.oob_score_
-randForest_PCA_pred= randForest_PCA.predict(pca_cal_feature_set)
+randForest_PCA_pred= randForest_PCA.predict(pca_cal_features_SSscaled)
 randForest_PCA_Rsq = r2_score(labels_SSscaled, randForest_PCA_pred)
 
 print('PCA Pretrained Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(randForest_PCA_oob*100, randForest_PCA_Rsq*100, time()-start))
