@@ -249,7 +249,7 @@ ica_cal_feature_set  = setup_features(dataRaw    = spitzerCalRawData,
                                       transformer= FastICA(), 
                                       scaler     = StandardScaler, 
                                       verbose    = False, 
-                                      returnAll  = 'simple')
+                                      returnAll  = 'features')
 
 print('took {} seconds'.format(time() - start))
 
