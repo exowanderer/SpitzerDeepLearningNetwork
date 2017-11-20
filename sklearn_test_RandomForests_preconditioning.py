@@ -135,8 +135,8 @@ def predict_with_scaled_transformer(features, labels, transformer, label_scaler,
     return features_trnsfrmd, labels_scaled
 
 files_in_directory = glob('./*')
-for filename in files_in_directory:
-    filename.replace('./','')
+for k in range(len(files_in_directory)):
+    files_in_directory[k].replace('./','')
 
 nRF_modes       = 6
 perform_rf_mode = np.ones(nRF_modes, dtype=bool)
