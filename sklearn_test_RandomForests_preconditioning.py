@@ -146,7 +146,7 @@ set_of_save_files  = ['./randForest_STD_approach.save',
                       './randForest_RFI_PCA_approach.save', 
                       './randForest_RFI_ICA_approach.save']
 
-for sfile in set_of_save_files:
+for k, sfile in enumerate(set_of_save_files):
     if sfile in files_in_directory:
         perform_rf_mode[k] = False
 
