@@ -20,6 +20,8 @@ from sklearn.decomposition    import PCA, FastICA
 from sklearn.externals        import joblib
 from sklearn.metrics          import r2_score
 
+from glob                     import glob
+
 # plt.rcParams['figure.dpi'] = 300
 
 # from corner import corner
@@ -132,15 +134,27 @@ def predict_with_scaled_transformer(features, labels, transformer, label_scaler,
     
     return features_trnsfrmd, labels_scaled
 
+files_in_directory = glob('./*')
+
 nRF_modes       = 6
 perform_rf_mode = np.ones(nRF_modes, dtype=bool)
+
+set_of_save_files  = ['randForest_STD_approach.save', 
+                      'randForest_PCA_approach.save', 
+                      'randForest_ICA_approach.save', 
+                      'randForest_RFI_approach.save', 
+                      'randForest_RFI_PCA_approach.save', 
+                      'randForest_RFI_ICA_approach.save']
+
+for sfile in set_of_save_files:
+    if sfile in files_in_directory:
+        perform_rf_mode[k] = False
+
 if len(argv) > 1:
     for k, arg in enumerate(argv):
         perform_rf_mode[k] = bool(arg)
 
 do_std, do_pca, do_ica, do_rfi, do_rfi_pca, do_rfi_ica = perform_rf_mode
-
-save_calibration_stacks = False
 
 # ## Load CSVs data
 spitzerCalNotFeatures = ['flux', 'fluxerr', 'dn_peak', 'xycov', 't_cernox', 'xerr', 'yerr']
@@ -207,6 +221,14 @@ pca_cal_features_SSscaled, labels_SSscaled, spitzerCalRawData, \
                                                             verbose    = False,
                                                             returnAll  = True)
 
+save_calibration_stacks = False
+if 'spitzerCalLabelScaler_fit.save' not in files_in_directory:
+    save_calibration_stacks = True
+if 'spitzerCalFeatureScaler_fit.save' not in files_in_directory:
+    save_calibration_stacks = True
+if 'spitzerCalFeaturePCA_trnsfrmr.save' not in files_in_directory:
+    save_calibration_stacks = True
+
 if save_calibration_stacks:
     # *** For production level usage ***
     # All scaling and transformations must be done with respect to the calibration data distributions
@@ -238,20 +260,20 @@ if do_pca:
                                             random_state=42, 
                                             verbose=0, 
                                             warm_start=True)
-
+    
     print(pca_cal_features_SSscaled.shape, labels_SSscaled.shape)
-
+    
     start=time()
     randForest_PCA.fit(pca_cal_features_SSscaled, labels_SSscaled)
-
+    
     randForest_PCA_oob = randForest_PCA.oob_score_
     randForest_PCA_pred= randForest_PCA.predict(pca_cal_features_SSscaled)
     randForest_PCA_Rsq = r2_score(labels_SSscaled, randForest_PCA_pred)
-
+    
     print('PCA Pretrained Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(randForest_PCA_oob*100, randForest_PCA_Rsq*100, time()-start))
-
+    
     joblib.dump(randForest_PCA, 'randForest_PCA_approach.save')
-
+    
     del randForest_PCA, randForest_PCA_pred
     _ = gc.collect()
 
@@ -266,9 +288,9 @@ if do_ica:
                                           scaler     = StandardScaler, 
                                           verbose    = False, 
                                           returnAll  = 'features')
-
+    
     print('took {} seconds'.format(time() - start))
-
+    
     randForest_ICA = RandomForestRegressor( n_estimators=nTrees, 
                                             criterion='mse', 
                                             max_depth=None, 
@@ -283,16 +305,16 @@ if do_ica:
                                             random_state=42, 
                                             verbose=0, 
                                             warm_start=True)
-
+    
     start=time()
     randForest_ICA.fit(ica_cal_feature_set, labels_SSscaled)
-
+    
     randForest_ICA_oob = randForest_ICA.oob_score_
     randForest_ICA_pred= randForest_ICA.predict(ica_cal_feature_set)
     randForest_ICA_Rsq = r2_score(labels_SSscaled, randForest_ICA_pred)
-
+    
     print('ICA Pretrained Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(randForest_ICA_oob*100, randForest_ICA_Rsq*100, time()-start))
-
+    
     joblib.dump(randForest_ICA, 'randForest_ICA_approach.save')
     del randForest_ICA
     _ = gc.collect()
