@@ -10,6 +10,8 @@ warnings.filterwarnings("ignore")
 
 import gc
 
+from sys import argv
+
 # from matplotlib import pyplot as plt
 from sklearn.model_selection  import train_test_split
 from sklearn.preprocessing    import StandardScaler, MinMaxScaler, minmax_scale
@@ -134,7 +136,7 @@ nRF_modes       = 6
 perform_rf_mode = np.ones(nRF_modes, dtype=bool)
 if len(argv) > 1:
     for k, arg in enumerate(argv):
-        perform_rf_mode[k] = arg
+        perform_rf_mode[k] = bool(arg)
 
 do_std, do_pca, do_ica, do_rfi, do_rfi_pca, do_rfi_ica = perform_rf_mode
 
