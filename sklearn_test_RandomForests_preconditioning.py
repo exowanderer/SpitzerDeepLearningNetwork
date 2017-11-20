@@ -138,6 +138,8 @@ if len(argv) > 1:
 
 do_std, do_pca, do_ica, do_rfi, do_rfi_pca, do_rfi_ica = perform_rf_mode
 
+save_calibration_stacks = False
+
 # ## Load CSVs data
 spitzerCalNotFeatures = ['flux', 'fluxerr', 'dn_peak', 'xycov', 't_cernox', 'xerr', 'yerr']
 spitzerCalFilename    ='pmap_ch2_0p1s_x4_rmulti_s3_7.csv'
