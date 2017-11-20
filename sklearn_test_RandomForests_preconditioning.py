@@ -137,6 +137,7 @@ def predict_with_scaled_transformer(features, labels, transformer, label_scaler,
 files_in_directory = glob('./*')
 for k in range(len(files_in_directory)):
     files_in_directory[k].replace('./','')
+print(files_in_directory)
 
 nRF_modes       = 6
 perform_rf_mode = np.ones(nRF_modes, dtype=bool)
@@ -210,11 +211,8 @@ if do_std:
     _ = gc.collect()
 
 
-# for nComps in range(1,spitzerData.shape[1]):
-print('Performing PCA Random Forest')
-
 start = time()
-print('Performing PCA', end=" ")
+print('Grabbing PCA', end=" ")
 pca_cal_features_SSscaled, labels_SSscaled, spitzerCalRawData, \
     pca_trnsfrmr, label_sclr, feature_sclr = setup_features(dataRaw    = spitzerCalRawData, 
                                                             notFeatures= spitzerCalNotFeatures, 
@@ -222,6 +220,8 @@ pca_cal_features_SSscaled, labels_SSscaled, spitzerCalRawData, \
                                                             scaler     = StandardScaler, 
                                                             verbose    = False,
                                                             returnAll  = True)
+print(len(pca_cal_features_SSscaled))
+print('took {} seconds'.format(time() - start))
 
 save_calibration_stacks = False
 if 'spitzerCalLabelScaler_fit.save' not in files_in_directory:
@@ -245,9 +245,7 @@ if save_calibration_stacks:
     joblib.dump(pca_trnsfrmr, 'spitzerCalFeaturePCA_trnsfrmr.save')
 
 if do_pca:
-    print(len(pca_cal_features_SSscaled))
-    print('took {} seconds'.format(time() - start))
-
+    print('Performing PCA Random Forest')
     randForest_PCA = RandomForestRegressor( n_estimators=nTrees, 
                                             n_jobs=-1, 
                                             criterion='mse', 
