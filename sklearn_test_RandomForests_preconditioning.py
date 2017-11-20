@@ -135,6 +135,8 @@ def predict_with_scaled_transformer(features, labels, transformer, label_scaler,
     return features_trnsfrmd, labels_scaled
 
 files_in_directory = glob('./*')
+for filename in files_in_directory:
+    filename.replace('./','')
 
 nRF_modes       = 6
 perform_rf_mode = np.ones(nRF_modes, dtype=bool)
@@ -147,11 +149,9 @@ set_of_save_files  = ['randForest_STD_approach.save',
                       'randForest_RFI_ICA_approach.save']
 
 for sfile in set_of_save_files:
-    print(sfile, files_in_directory)
     if sfile in files_in_directory:
         perform_rf_mode[k] = False
 
-print(len(argv))
 if len(argv) > 1:
     for k, arg in enumerate(argv):
         perform_rf_mode[k] = bool(arg)
