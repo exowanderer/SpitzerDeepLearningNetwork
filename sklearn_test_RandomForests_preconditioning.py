@@ -130,6 +130,14 @@ def predict_with_scaled_transformer(features, labels, transformer, label_scaler,
     
     return features_trnsfrmd, labels_scaled
 
+nRF_modes       = 6
+perform_rf_mode = np.ones(nRF_modes, dtype=bool)
+if len(argv) > 1:
+    for k, arg in enumerate(argv):
+        perform_rf_mode[k] = arg
+
+do_std, do_pca, do_ica, do_rfi, do_rfi_pca, do_rfi_ica = perform_rf_mode
+
 # ## Load CSVs data
 spitzerCalNotFeatures = ['flux', 'fluxerr', 'dn_peak', 'xycov', 't_cernox', 'xerr', 'yerr']
 spitzerCalFilename    ='pmap_ch2_0p1s_x4_rmulti_s3_7.csv'
@@ -145,40 +153,41 @@ features_SSscaled, labels_SSscaled = setup_features(dataRaw    = spitzerCalRawDa
 
 nTrees = 1000
 
-# **Standard Random Forest Approach**
-# for nComps in range(1,spitzerData.shape[1]):
-print('Performing STD Random Forest')
-randForest_STD = RandomForestRegressor( n_estimators=nTrees, \
-                                        n_jobs=-1, \
-                                        criterion='mse', \
-                                        max_depth=None, \
-                                        min_samples_split=2, \
-                                        min_samples_leaf=1, \
-                                        min_weight_fraction_leaf=0.0, \
-                                        max_features='auto', \
-                                        max_leaf_nodes=None, \
-                                        bootstrap=True, \
-                                        oob_score=True, \
-                                        random_state=42, \
-                                        verbose=0, \
-                                        warm_start=True)
+if do_std:
+    # **Standard Random Forest Approach**
+    # for nComps in range(1,spitzerData.shape[1]):
+    print('Performing STD Random Forest')
+    randForest_STD = RandomForestRegressor( n_estimators=nTrees, \
+                                            n_jobs=-1, \
+                                            criterion='mse', \
+                                            max_depth=None, \
+                                            min_samples_split=2, \
+                                            min_samples_leaf=1, \
+                                            min_weight_fraction_leaf=0.0, \
+                                            max_features='auto', \
+                                            max_leaf_nodes=None, \
+                                            bootstrap=True, \
+                                            oob_score=True, \
+                                            random_state=42, \
+                                            verbose=0, \
+                                            warm_start=True)
 
-start=time()
-randForest_STD.fit(features_SSscaled, labels_SSscaled)
+    start=time()
+    randForest_STD.fit(features_SSscaled, labels_SSscaled)
 
-# Save for Later
-importances = randForest_STD.feature_importances_
-np.savetxt('randForest_STD_feature_importances.txt', importances)
+    # Save for Later
+    importances = randForest_STD.feature_importances_
+    np.savetxt('randForest_STD_feature_importances.txt', importances)
+    
+    randForest_STD_oob = randForest_STD.oob_score_
+    randForest_STD_pred= randForest_STD.predict(features_SSscaled)
+    randForest_STD_Rsq = r2_score(labels_SSscaled, randForest_STD_pred)
 
-randForest_STD_oob = randForest_STD.oob_score_
-randForest_STD_pred= randForest_STD.predict(features_SSscaled)
-randForest_STD_Rsq = r2_score(labels_SSscaled, randForest_STD_pred)
+    print('Standard Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(randForest_STD_oob*100, randForest_STD_Rsq*100, time()-start))
 
-print('Standard Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(randForest_STD_oob*100, randForest_STD_Rsq*100, time()-start))
-
-joblib.dump(randForest_STD, 'randForest_STD_approach.save')
-del randForest_STD, randForest_STD_pred
-_ = gc.collect()
+    joblib.dump(randForest_STD, 'randForest_STD_approach.save')
+    del randForest_STD, randForest_STD_pred
+    _ = gc.collect()
 
 
 # for nComps in range(1,spitzerData.shape[1]):
@@ -194,158 +203,25 @@ pca_cal_features_SSscaled, labels_SSscaled, spitzerCalRawData, \
                                                             verbose    = False,
                                                             returnAll  = True)
 
-# *** For production level usage ***
-# All scaling and transformations must be done with respect to the calibration data distributions
-#   - That means to use .transform instead of .fit_transform
-#   - See `predict_with_scaled_transformer`
+if save_calibration_stacks:
+    # *** For production level usage ***
+    # All scaling and transformations must be done with respect to the calibration data distributions
+    #   - That means to use .transform instead of .fit_transform
+    #   - See `predict_with_scaled_transformer`
 
-# Need to Scale the Labels based off of the calibration distribution
-joblib.dump(label_sclr  , 'spitzerCalLabelScaler_fit.save')
-# Need to Scale the Features based off of the calibration distribution
-joblib.dump(feature_sclr, 'spitzerCalFeatureScaler_fit.save')
-# Need to Transform the Scaled Features based off of the calibration distribution
-joblib.dump(pca_trnsfrmr, 'spitzerCalFeaturePCA_trnsfrmr.save')
+    # Need to Scale the Labels based off of the calibration distribution
+    joblib.dump(label_sclr  , 'spitzerCalLabelScaler_fit.save')
+    # Need to Scale the Features based off of the calibration distribution
+    joblib.dump(feature_sclr, 'spitzerCalFeatureScaler_fit.save')
+    # Need to Transform the Scaled Features based off of the calibration distribution
+    joblib.dump(pca_trnsfrmr, 'spitzerCalFeaturePCA_trnsfrmr.save')
 
-print(len(pca_cal_features_SSscaled))
-print('took {} seconds'.format(time() - start))
+if do_pca:
+    print(len(pca_cal_features_SSscaled))
+    print('took {} seconds'.format(time() - start))
 
-randForest_PCA = RandomForestRegressor( n_estimators=nTrees, 
-                                        n_jobs=-1, 
-                                        criterion='mse', 
-                                        max_depth=None, 
-                                        min_samples_split=2, 
-                                        min_samples_leaf=1, 
-                                        min_weight_fraction_leaf=0.0, 
-                                        max_features='auto', 
-                                        max_leaf_nodes=None, 
-                                        bootstrap=True, 
-                                        oob_score=True, 
-                                        random_state=42, 
-                                        verbose=0, 
-                                        warm_start=True)
-
-print(pca_cal_features_SSscaled.shape, labels_SSscaled.shape)
-
-start=time()
-randForest_PCA.fit(pca_cal_features_SSscaled, labels_SSscaled)
-
-randForest_PCA_oob = randForest_PCA.oob_score_
-randForest_PCA_pred= randForest_PCA.predict(pca_cal_features_SSscaled)
-randForest_PCA_Rsq = r2_score(labels_SSscaled, randForest_PCA_pred)
-
-print('PCA Pretrained Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(randForest_PCA_oob*100, randForest_PCA_Rsq*100, time()-start))
-
-joblib.dump(randForest_PCA, 'randForest_PCA_approach.save')
-
-del randForest_PCA, randForest_PCA_pred
-_ = gc.collect()
-
-# for nComps in range(1,spitzerData.shape[1]):
-print('Performing ICA Random Forest')
-start = time()
-print('Performing ICA', end=" ")
-ica_cal_feature_set  = setup_features(dataRaw    = spitzerCalRawData, 
-                                      notFeatures= spitzerCalNotFeatures, 
-                                      transformer= FastICA(), 
-                                      scaler     = StandardScaler, 
-                                      verbose    = False, 
-                                      returnAll  = 'features')
-
-print('took {} seconds'.format(time() - start))
-
-randForest_ICA = RandomForestRegressor( n_estimators=nTrees, 
-                                        criterion='mse', 
-                                        max_depth=None, 
-                                        min_samples_split=2, 
-                                        min_samples_leaf=1, 
-                                        min_weight_fraction_leaf=0.0, 
-                                        max_features='auto', 
-                                        max_leaf_nodes=None, 
-                                        bootstrap=True, 
-                                        oob_score=True, 
-                                        n_jobs=-1, 
-                                        random_state=42, 
-                                        verbose=0, 
-                                        warm_start=True)
-
-start=time()
-randForest_ICA.fit(ica_cal_feature_set, labels_SSscaled)
-
-randForest_ICA_oob = randForest_ICA.oob_score_
-randForest_ICA_pred= randForest_ICA.predict(ica_cal_feature_set)
-randForest_ICA_Rsq = r2_score(labels_SSscaled, randForest_ICA_pred)
-
-print('ICA Pretrained Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(randForest_ICA_oob*100, randForest_ICA_Rsq*100, time()-start))
-
-joblib.dump(randForest_ICA, 'randForest_ICA_approach.save')
-del randForest_ICA
-_ = gc.collect()
-
-
-# randForest_STD = joblib.load('randForest_standard_approach.save', mmap_mode='r+')
-
-# **Importance Sampling**
-print('Computing Importances for RFI Random Forest')
-
-indices     = np.argsort(importances)[::-1]
-
-cumsum = np.cumsum(importances[indices])
-nImportantSamples = np.argmax(cumsum >= 0.95) + 1
-
-# **Random Forest Pretrained Random Forest Approach**
-rfi_cal_feature_set = features_SSscaled.T[indices][:nImportantSamples].T
-
-# for nComps in range(1,spitzerData.shape[1]):
-print('Performing RFI Random Forest')
-
-randForest_RFI = RandomForestRegressor( n_estimators=nTrees, \
-                                        n_jobs=-1, \
-                                        criterion='mse', \
-                                        max_depth=None, \
-                                        min_samples_split=2, \
-                                        min_samples_leaf=1, \
-                                        min_weight_fraction_leaf=0.0, \
-                                        max_features='auto', \
-                                        max_leaf_nodes=None, \
-                                        bootstrap=True, \
-                                        oob_score=True, \
-                                        random_state=42, \
-                                        verbose=0, \
-                                        warm_start=True)
-
-start=time()
-randForest_RFI.fit(rfi_cal_feature_set, labels_SSscaled)
-
-randForest_RFI_oob = randForest_RFI.oob_score_
-randForest_RFI_pred= randForest_RFI.predict(rfi_cal_feature_set)
-randForest_RFI_Rsq = r2_score(labels_SSscaled, randForest_RFI_pred)
-
-print('RFI Pretrained Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(randForest_RFI_oob*100, randForest_RFI_Rsq*100, time()-start))
-
-joblib.dump(randForest_RFI, 'randForest_RFI_approach.save')
-del randForest_RFI
-_ = gc.collect()
-
-
-# **PCA Pretrained Random Forest Approach**
-print('Performing PCA on RFI', end=" ")
-start = time()
-
-pca = PCA()
-pca_rfi_cal_feature_set = pca.fit_transform(rfi_cal_feature_set)
-print('took {} seconds'.format(time() - start))
-
-# **ICA Pretrained Random Forest Approach**
-print('Performing ICA on RFI', end=" ")
-ica = FastICA()
-start = time()
-
-ica_rfi_cal_feature_set = ica.fit_transform(rfi_cal_feature_set)
-print('took {} seconds'.format(time() - start))
-
-print('Performing RFI with PCA Random Forest')
-
-randForest_RFI_PCA = RandomForestRegressor( n_estimators=nTrees, 
+    randForest_PCA = RandomForestRegressor( n_estimators=nTrees, 
+                                            n_jobs=-1, 
                                             criterion='mse', 
                                             max_depth=None, 
                                             min_samples_split=2, 
@@ -353,31 +229,43 @@ randForest_RFI_PCA = RandomForestRegressor( n_estimators=nTrees,
                                             min_weight_fraction_leaf=0.0, 
                                             max_features='auto', 
                                             max_leaf_nodes=None, 
-                                            bootstrap=True,
+                                            bootstrap=True, 
                                             oob_score=True, 
-                                            n_jobs=-1, 
                                             random_state=42, 
                                             verbose=0, 
                                             warm_start=True)
 
-start=time()
-randForest_RFI_PCA.fit(pca_rfi_cal_feature_set, labels_SSscaled)
+    print(pca_cal_features_SSscaled.shape, labels_SSscaled.shape)
 
-randForest_RFI_PCA_oob = randForest_RFI_PCA.oob_score_
-randForest_RFI_PCA_pred= randForest_RFI_PCA.predict(pca_rfi_cal_feature_set)
-randForest_RFI_PCA_Rsq = r2_score(labels_SSscaled, randForest_RFI_PCA_pred)
+    start=time()
+    randForest_PCA.fit(pca_cal_features_SSscaled, labels_SSscaled)
 
-print('RFI Pretrained with PCA Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(
-    randForest_RFI_PCA_oob*100, randForest_RFI_PCA_Rsq*100, time()-start))
+    randForest_PCA_oob = randForest_PCA.oob_score_
+    randForest_PCA_pred= randForest_PCA.predict(pca_cal_features_SSscaled)
+    randForest_PCA_Rsq = r2_score(labels_SSscaled, randForest_PCA_pred)
 
-joblib.dump(randForest_RFI_PCA, 'randForest_RFI_PCA_approach.save')
+    print('PCA Pretrained Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(randForest_PCA_oob*100, randForest_PCA_Rsq*100, time()-start))
 
-del randForest_RFI_PCA
-_ = gc.collect()
+    joblib.dump(randForest_PCA, 'randForest_PCA_approach.save')
 
-print('Performing RFI with ICA Random Forest')
+    del randForest_PCA, randForest_PCA_pred
+    _ = gc.collect()
 
-randForest_RFI_ICA = RandomForestRegressor( n_estimators=nTrees, 
+if do_ica:
+    # for nComps in range(1,spitzerData.shape[1]):
+    print('Performing ICA Random Forest')
+    start = time()
+    print('Performing ICA', end=" ")
+    ica_cal_feature_set  = setup_features(dataRaw    = spitzerCalRawData, 
+                                          notFeatures= spitzerCalNotFeatures, 
+                                          transformer= FastICA(), 
+                                          scaler     = StandardScaler, 
+                                          verbose    = False, 
+                                          returnAll  = 'features')
+
+    print('took {} seconds'.format(time() - start))
+
+    randForest_ICA = RandomForestRegressor( n_estimators=nTrees, 
                                             criterion='mse', 
                                             max_depth=None, 
                                             min_samples_split=2, 
@@ -392,19 +280,142 @@ randForest_RFI_ICA = RandomForestRegressor( n_estimators=nTrees,
                                             verbose=0, 
                                             warm_start=True)
 
-start=time()
-randForest_RFI_ICA.fit(ica_rfi_cal_feature_set, labels_SSscaled)
+    start=time()
+    randForest_ICA.fit(ica_cal_feature_set, labels_SSscaled)
 
-randForest_RFI_ICA_oob = randForest_RFI_ICA.oob_score_
-randForest_RFI_ICA_pred= randForest_RFI_ICA.predict(ica_rfi_cal_feature_set)
-randForest_RFI_ICA_Rsq = r2_score(labels_SSscaled, randForest_RFI_ICA_pred)
+    randForest_ICA_oob = randForest_ICA.oob_score_
+    randForest_ICA_pred= randForest_ICA.predict(ica_cal_feature_set)
+    randForest_ICA_Rsq = r2_score(labels_SSscaled, randForest_ICA_pred)
 
-print('RFI Pretrained with ICA Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(
-    randForest_RFI_ICA_oob*100, randForest_RFI_ICA_Rsq*100, time()-start))
+    print('ICA Pretrained Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(randForest_ICA_oob*100, randForest_ICA_Rsq*100, time()-start))
 
-joblib.dump(randForest_RFI_ICA, 'randForest_RFI_ICA_approach.save')
+    joblib.dump(randForest_ICA, 'randForest_ICA_approach.save')
+    del randForest_ICA
+    _ = gc.collect()
 
-del randForest_RFI_ICA
-_ = gc.collect()
+if do_rfi:
+    # **Importance Sampling**
+    print('Computing Importances for RFI Random Forest')
+    importances = np.loadtxt('randForest_STD_feature_importances.txt')
+    indices     = np.argsort(importances)[::-1]
+    
+    cumsum = np.cumsum(importances[indices])
+    nImportantSamples = np.argmax(cumsum >= 0.95) + 1
+    
+    # **Random Forest Pretrained Random Forest Approach**
+    rfi_cal_feature_set = features_SSscaled.T[indices][:nImportantSamples].T
+    
+    # for nComps in range(1,spitzerData.shape[1]):
+    print('Performing RFI Random Forest')
+    
+    randForest_RFI = RandomForestRegressor( n_estimators=nTrees, \
+                                            n_jobs=-1, \
+                                            criterion='mse', \
+                                            max_depth=None, \
+                                            min_samples_split=2, \
+                                            min_samples_leaf=1, \
+                                            min_weight_fraction_leaf=0.0, \
+                                            max_features='auto', \
+                                            max_leaf_nodes=None, \
+                                            bootstrap=True, \
+                                            oob_score=True, \
+                                            random_state=42, \
+                                            verbose=0, \
+                                            warm_start=True)
+
+    start=time()
+    randForest_RFI.fit(rfi_cal_feature_set, labels_SSscaled)
+
+    randForest_RFI_oob = randForest_RFI.oob_score_
+    randForest_RFI_pred= randForest_RFI.predict(rfi_cal_feature_set)
+    randForest_RFI_Rsq = r2_score(labels_SSscaled, randForest_RFI_pred)
+
+    print('RFI Pretrained Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(randForest_RFI_oob*100, randForest_RFI_Rsq*100, time()-start))
+
+    joblib.dump(randForest_RFI, 'randForest_RFI_approach.save')
+    del randForest_RFI
+    _ = gc.collect()
+
+if do_rfi_pca:
+    # **PCA Pretrained Random Forest Approach**
+    print('Performing PCA on RFI', end=" ")
+    start = time()
+
+    pca = PCA()
+    pca_rfi_cal_feature_set = pca.fit_transform(rfi_cal_feature_set)
+    print('took {} seconds'.format(time() - start))
+
+    # **ICA Pretrained Random Forest Approach**
+    print('Performing ICA on RFI', end=" ")
+    ica = FastICA()
+    start = time()
+
+    ica_rfi_cal_feature_set = ica.fit_transform(rfi_cal_feature_set)
+    print('took {} seconds'.format(time() - start))
+
+    print('Performing RFI with PCA Random Forest')
+
+    randForest_RFI_PCA = RandomForestRegressor( n_estimators=nTrees, 
+                                                criterion='mse', 
+                                                max_depth=None, 
+                                                min_samples_split=2, 
+                                                min_samples_leaf=1, 
+                                                min_weight_fraction_leaf=0.0, 
+                                                max_features='auto', 
+                                                max_leaf_nodes=None, 
+                                                bootstrap=True,
+                                                oob_score=True, 
+                                                n_jobs=-1, 
+                                                random_state=42, 
+                                                verbose=0, 
+                                                warm_start=True)
+
+    start=time()
+    randForest_RFI_PCA.fit(pca_rfi_cal_feature_set, labels_SSscaled)
+
+    randForest_RFI_PCA_oob = randForest_RFI_PCA.oob_score_
+    randForest_RFI_PCA_pred= randForest_RFI_PCA.predict(pca_rfi_cal_feature_set)
+    randForest_RFI_PCA_Rsq = r2_score(labels_SSscaled, randForest_RFI_PCA_pred)
+
+    print('RFI Pretrained with PCA Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(
+        randForest_RFI_PCA_oob*100, randForest_RFI_PCA_Rsq*100, time()-start))
+
+    joblib.dump(randForest_RFI_PCA, 'randForest_RFI_PCA_approach.save')
+
+    del randForest_RFI_PCA
+    _ = gc.collect()
+
+if do_rfi_ica:
+    print('Performing RFI with ICA Random Forest')
+
+    randForest_RFI_ICA = RandomForestRegressor( n_estimators=nTrees, 
+                                                criterion='mse', 
+                                                max_depth=None, 
+                                                min_samples_split=2, 
+                                                min_samples_leaf=1, 
+                                                min_weight_fraction_leaf=0.0, 
+                                                max_features='auto', 
+                                                max_leaf_nodes=None, 
+                                                bootstrap=True, 
+                                                oob_score=True, 
+                                                n_jobs=-1, 
+                                                random_state=42, 
+                                                verbose=0, 
+                                                warm_start=True)
+
+    start=time()
+    randForest_RFI_ICA.fit(ica_rfi_cal_feature_set, labels_SSscaled)
+
+    randForest_RFI_ICA_oob = randForest_RFI_ICA.oob_score_
+    randForest_RFI_ICA_pred= randForest_RFI_ICA.predict(ica_rfi_cal_feature_set)
+    randForest_RFI_ICA_Rsq = r2_score(labels_SSscaled, randForest_RFI_ICA_pred)
+
+    print('RFI Pretrained with ICA Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(
+        randForest_RFI_ICA_oob*100, randForest_RFI_ICA_Rsq*100, time()-start))
+
+    joblib.dump(randForest_RFI_ICA, 'randForest_RFI_ICA_approach.save')
+
+    del randForest_RFI_ICA
+    _ = gc.collect()
 
 pdb.set_trace()
