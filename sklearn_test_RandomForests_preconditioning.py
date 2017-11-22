@@ -89,7 +89,7 @@ def setup_features(dataRaw, notFeatures = [], transformer = PCA(), scaler = Stan
     
     return features_trnsfrmd, labels_scaled
 
-def predict_with_scaled_transformer(features, labels, transformer, label_scaler, feature_scaler):
+def predict_with_scaled_transformer(features, labels=None, transformer=None, label_scaler=None, feature_scaler=None):
     """Example function with types documented in the docstring.
 
         For production level usage: All scaling and transformations must be done 
@@ -114,23 +114,10 @@ def predict_with_scaled_transformer(features, labels, transformer, label_scaler,
             features
             
     '''
-    labels_scaled     = label_scaler.transform(labels[:,None]).ravel()
-    features_scaled   = feature_scaler.transform(features)
-    features_trnsfrmd = transformer.transform(features_scaled)
     
-    if verbose: print('took {} seconds'.format(time() - start))
-    
-    if returnAll == True:
-        return features_trnsfrmd, labels_scaled, dataRaw, transformer, label_scaler, feature_scaler
-    
-    if returnAll == 'features':
-        return features_trnsfrmd
-    
-    if returnAll == 'labels':
-        return labels_scaled
-    
-    if returnAll == 'both with raw data':
-        features_trnsfrmd, labels_scaled, dataRaw
+    labels_scaled     = label_scaler.transform(labels[:,None]).ravel() if label_scaler   is not None else labels
+    features_scaled   = feature_scaler.transform(features)             if feature_scaler is not None else features
+    features_trnsfrmd = transformer.transform(features_scaled)         if transformer    is not None else features_scaled
     
     return features_trnsfrmd, labels_scaled
 
@@ -313,7 +300,7 @@ if do_ica:
     print('ICA Pretrained Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(randForest_ICA_oob*100, randForest_ICA_Rsq*100, time()-start))
     
     joblib.dump(randForest_ICA, 'randForest_ICA_approach.save')
-    del randForest_ICA
+    del randForest_ICA, randForest_ICA_oob, randForest_ICA_pred, randForest_ICA_Rsq
     _ = gc.collect()
 
 if do_rfi:
@@ -356,7 +343,7 @@ if do_rfi:
     print('RFI Pretrained Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(randForest_RFI_oob*100, randForest_RFI_Rsq*100, time()-start))
 
     joblib.dump(randForest_RFI, 'randForest_RFI_approach.save')
-    del randForest_RFI
+    del randForest_RFI, randForest_RFI_oob, randForest_RFI_pred, randForest_RFI_Rsq, rfi_cal_feature_set
     _ = gc.collect()
 
 if do_rfi_pca:
@@ -405,7 +392,7 @@ if do_rfi_pca:
 
     joblib.dump(randForest_RFI_PCA, 'randForest_RFI_PCA_approach.save')
 
-    del randForest_RFI_PCA
+    del randForest_RFI_PCA, randForest_RFI_PCA_oob, randForest_RFI_PCA_pred, randForest_RFI_PCA_Rsq
     _ = gc.collect()
 
 if do_rfi_ica:
@@ -438,7 +425,7 @@ if do_rfi_ica:
 
     joblib.dump(randForest_RFI_ICA, 'randForest_RFI_ICA_approach.save')
 
-    del randForest_RFI_ICA
+    del randForest_RFI_ICA, randForest_RFI_ICA_oob, randForest_RFI_ICA_pred, randForest_RFI_ICA_Rsq
     _ = gc.collect()
 
 pdb.set_trace()
