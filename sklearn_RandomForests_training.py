@@ -14,7 +14,7 @@ from sys import argv
 
 # from matplotlib import pyplot as plt
 from sklearn.model_selection  import train_test_split
-from sklearn.preprocessing    import StandardScaler(), MinMaxScaler, minmax_scale
+from sklearn.preprocessing    import StandardScaler, MinMaxScaler, minmax_scale
 from sklearn.ensemble         import RandomForestRegressor, ExtraTreesRegressor, AdaBoostRegressor
 from sklearn.decomposition    import PCA, FastICA
 from sklearn.externals        import joblib
