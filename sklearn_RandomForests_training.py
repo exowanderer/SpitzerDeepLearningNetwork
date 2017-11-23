@@ -79,7 +79,7 @@ def setup_features(dataRaw, notFeatures=[], transformer=PCA(), feature_scaler=St
     feature_columns = inputData.drop(notFeatures,axis=1).columns.values
     features        = inputData.drop(notFeatures,axis=1).values
     labels          = inputData['flux'].values
-    
+    print(features.shape)
     # **PCA Preconditioned Random Forest Approach**
     if verbose: print('Performing PCA', end=" ")
     if verbose: start = time()
