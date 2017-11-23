@@ -249,11 +249,11 @@ print(len(pca_cal_features_SSscaled))
 print('took {} seconds'.format(time() - start))
 
 save_calibration_stacks = False
-if 'spitzerCalLabelScaler_fit.save' not in files_in_directory:
+if 'spitzerCalLabelScaler_fit.save' not in files_in_directory and label_sclr is not None:
     save_calibration_stacks = True
-if 'spitzerCalFeatureScaler_fit.save' not in files_in_directory:
+if 'spitzerCalFeatureScaler_fit.save' not in files_in_directory and feature_sclr is not None:
     save_calibration_stacks = True
-if 'spitzerCalFeaturePCA_trnsfrmr.save' not in files_in_directory:
+if 'spitzerCalFeaturePCA_trnsfrmr.save' not in files_in_directory and pca_trnsfrmr is not None:
     save_calibration_stacks = True
 
 if save_calibration_stacks:
