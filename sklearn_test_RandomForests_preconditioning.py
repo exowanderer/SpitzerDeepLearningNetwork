@@ -33,13 +33,28 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.decomposition import PCA, FastICA
 
-def setup_features(dataRaw, notFeatures = [], transformer = PCA(), scaler = StandardScaler, verbose = False, returnAll = None):
+def setup_features(dataRaw, notFeatures=[], transformer=PCA(), feature_scaler=StandardScaler, label_scaler=None, verbose=False, returnAll=None):
+    """Example function with types documented in the docstring.
+
+        For production level usage: All scaling and transformations must be done 
+            with respect to the calibration data distributions
+        
+        Args:
+            features  (nD-array): Array of input raw features.
+            labels    (1D-array): The second parameter.
+            transformer    (int): The first parameter.
+            label_scaler   (str): The second parameter.
+            feature_scaler (str): The second parameter.
+        Returns:
+            features_scaled_transformed, labels_scaled
+
+        .. _PEP 484:
+            https://github.com/ExoWanderer/
+
+    """
     if isinstance(dataRaw,str):
         dataRaw       = pd.read_csv(filename)
-    
-    feature_scaler = scaler()
-    label_scaler   = scaler()
-    
+        
     dataColNames  = dataRaw.columns
     PLDpixels     = {}
     for key in dataRaw.columns.values:
@@ -89,7 +104,7 @@ def setup_features(dataRaw, notFeatures = [], transformer = PCA(), scaler = Stan
     
     return features_trnsfrmd, labels_scaled
 
-def predict_with_scaled_transformer(features, labels=None, transformer=None, label_scaler=None, feature_scaler=None):
+def predict_with_scaled_transformer(dataRaw, notFeatures=None, transformer=None, feature_scaler=None, label_scaler=None, verbose=False):
     """Example function with types documented in the docstring.
 
         For production level usage: All scaling and transformations must be done 
@@ -108,12 +123,36 @@ def predict_with_scaled_transformer(features, labels=None, transformer=None, lab
             https://github.com/ExoWanderer/
 
     """
-    '''
-        
+    if isinstance(dataRaw,str):
+        dataRaw       = pd.read_csv(filename)
     
-            features
-            
-    '''
+    dataColNames  = dataRaw.columns
+    PLDpixels     = {}
+    for key in dataRaw.columns.values:
+        if 'pix' in key:
+            PLDpixels[key] = dataRaw[key]
+    
+    PLDpixels     = pd.DataFrame(PLDpixels)
+    
+    PLDnorm       = np.sum(np.array(PLDpixels),axis=1)
+    PLDpixels     = (PLDpixels.T / PLDnorm).T
+    
+    inputData = dataRaw.copy()
+    for key in dataRaw.columns: 
+        if key in PLDpixels.columns:
+            inputData[key] = PLDpixels[key]
+    
+    if verbose: 
+        testPLD = np.array(pd.DataFrame({key:inputData[key] for key in inputData.columns.values if 'pix' in key}))
+        assert(not sum(abs(testPLD - np.array(PLDpixels))).all())
+        print('Confirmed that PLD Pixels have been Normalized to Spec')
+    
+    feature_columns = inputData.drop(notFeatures,axis=1).columns.values
+    features        = inputData.drop(notFeatures,axis=1).values
+    labels          = inputData['flux'].values
+    
+    # **PCA Preconditioned Random Forest Approach**
+    if verbose: print('Performing PCA')
     
     labels_scaled     = label_scaler.transform(labels[:,None]).ravel() if label_scaler   is not None else labels
     features_scaled   = feature_scaler.transform(features)             if feature_scaler is not None else features
@@ -149,12 +188,13 @@ spitzerCalFilename    ='pmap_ch2_0p1s_x4_rmulti_s3_7.csv'
 
 spitzerCalRawData     = pd.read_csv(spitzerCalFilename)
 
-features_SSscaled, labels_SSscaled = setup_features(dataRaw    = spitzerCalRawData, 
-                                                    notFeatures= spitzerCalNotFeatures, 
-                                                    transformer= None, 
-                                                    scaler     = StandardScaler, 
-                                                    verbose    = False,
-                                                    returnAll  = None)
+features_SSscaled, labels_SSscaled = setup_features(dataRaw       = spitzerCalRawData,
+                                                    notFeatures   = spitzerCalNotFeatures,
+                                                    transformer   = None,
+                                                    feature_scaler= StandardScaler,
+                                                    label_scaler  = None,
+                                                    verbose       = False,
+                                                    returnAll     = None)
 
 nTrees = 1000
 
@@ -198,12 +238,13 @@ if do_std:
 start = time()
 print('Grabbing PCA', end=" ")
 pca_cal_features_SSscaled, labels_SSscaled, spitzerCalRawData, \
-    pca_trnsfrmr, label_sclr, feature_sclr = setup_features(dataRaw    = spitzerCalRawData, 
-                                                            notFeatures= spitzerCalNotFeatures, 
-                                                            transformer= None, 
-                                                            scaler     = StandardScaler, 
-                                                            verbose    = False,
-                                                            returnAll  = True)
+    pca_trnsfrmr, label_sclr, feature_sclr = setup_features(dataRaw       = spitzerCalRawData, 
+                                                            notFeatures   = spitzerCalNotFeatures, 
+                                                            transformer   = None, 
+                                                            feature_scaler= StandardScaler,
+                                                            label_scaler  = None,
+                                                            verbose       = False,
+                                                            returnAll     = True)
 print(len(pca_cal_features_SSscaled))
 print('took {} seconds'.format(time() - start))
 
@@ -266,12 +307,13 @@ if do_ica:
     print('Performing ICA Random Forest')
     start = time()
     print('Performing ICA', end=" ")
-    ica_cal_feature_set  = setup_features(dataRaw    = spitzerCalRawData, 
-                                          notFeatures= spitzerCalNotFeatures, 
-                                          transformer= FastICA(), 
-                                          scaler     = StandardScaler, 
-                                          verbose    = False, 
-                                          returnAll  = 'features')
+    ica_cal_feature_set  = setup_features(dataRaw       = spitzerCalRawData, 
+                                          notFeatures   = spitzerCalNotFeatures, 
+                                          transformer   = FastICA(), 
+                                          feature_scaler= StandardScaler,
+                                          label_scaler  = None,
+                                          verbose       = False, 
+                                          returnAll     = 'features')
     
     print('took {} seconds'.format(time() - start))
     

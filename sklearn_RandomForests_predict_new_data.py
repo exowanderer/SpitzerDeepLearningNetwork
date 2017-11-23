@@ -29,7 +29,7 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.decomposition import PCA, FastICA
 
-def predict_with_scaled_transformer(dataRaw, notFeatures=None, transformer=None, label_scaler=None, feature_scaler=None):
+def predict_with_scaled_transformer(dataRaw, notFeatures=None, transformer=None, feature_scaler=None, label_scaler=None, verbose=False):
     """Example function with types documented in the docstring.
 
         For production level usage: All scaling and transformations must be done 
@@ -99,13 +99,21 @@ spitzerCalNotFeatures = ['flux', 'fluxerr', 'dn_peak', 'xycov', 't_cernox', 'xer
 #   - That means to use .transform instead of .fit_transform
 #   - See `predict_with_scaled_transformer`
 
-rf_savename = 'randForest_STD_approach.save' if len(argv) < 2 else argv[2]
+rf_savename   = 'randForest_STD_approach.save' if len(argv) < 2 else argv[2]
+scaled_labels = False if len(argv) < 3 else argv[3]
+
+rf_type     = rf_savename.split('_')[1]
+if rf_savename.split('_')[2] != 'approach.save':
+    rf_type = rf_type + '_' + rf_savename.split('_')[2]
 
 # THIS TAKES A LONG TIME!! (~30 minutes)
 randForest  = joblib.load(rf_savename)
 
 # Need to Scale the Labels based off of the calibration distribution
-label_sclr    = joblib.load('spitzerCalLabelScaler_fit.save')
+if scaled_labels:
+    label_sclr    = joblib.load('spitzerCalLabelScaler_fit.save')
+else:
+    label_sclr    = None
 
 # Need to Scale the Features based off of the calibration distribution
 feature_sclr  = joblib.load('spitzerCalFeatureScaler_fit.save')
@@ -127,3 +135,4 @@ new_features, new_labels = predict_with_scaled_transformer(new_data, notFeatures
 
 new_rf_predict  = randForest.predict(new_features)
 
+np.savetxt(new_data_filename.replace('.csv', '_' + rf_type + '_save.txt'), np.transpose([new_data['bmjd'], new_data['flux'], new_data['fluxerr'], new_rf_predict]), header='Times\t\t\tFlux\t\t\tFlux_Err\t\tRF_Predict')
