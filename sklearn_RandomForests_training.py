@@ -343,18 +343,18 @@ if do_ica:
     del randForest_ICA, randForest_ICA_oob, randForest_ICA_pred, randForest_ICA_Rsq
     _ = gc.collect()
 
+# **Importance Sampling**
+print('Computing Importances for RFI Random Forest')
+importances = np.loadtxt('randForest_STD_feature_importances.txt')
+indices     = np.argsort(importances)[::-1]
+
+cumsum = np.cumsum(importances[indices])
+nImportantSamples = np.argmax(cumsum >= 0.95) + 1
+
+# **Random Forest Pretrained Random Forest Approach**
+rfi_cal_feature_set = features_SSscaled.T[indices][:nImportantSamples].T
+
 if do_rfi:
-    # **Importance Sampling**
-    print('Computing Importances for RFI Random Forest')
-    importances = np.loadtxt('randForest_STD_feature_importances.txt')
-    indices     = np.argsort(importances)[::-1]
-    
-    cumsum = np.cumsum(importances[indices])
-    nImportantSamples = np.argmax(cumsum >= 0.95) + 1
-    
-    # **Random Forest Pretrained Random Forest Approach**
-    rfi_cal_feature_set = features_SSscaled.T[indices][:nImportantSamples].T
-    
     # for nComps in range(1,spitzerData.shape[1]):
     print('Performing RFI Random Forest')
     
