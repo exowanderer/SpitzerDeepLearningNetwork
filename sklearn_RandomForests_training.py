@@ -14,7 +14,7 @@ from sys import argv
 
 # from matplotlib import pyplot as plt
 from sklearn.model_selection  import train_test_split
-from sklearn.preprocessing    import StandardScaler, MinMaxScaler, minmax_scale
+from sklearn.preprocessing    import StandardScaler(), MinMaxScaler, minmax_scale
 from sklearn.ensemble         import RandomForestRegressor, ExtraTreesRegressor, AdaBoostRegressor
 from sklearn.decomposition    import PCA, FastICA
 from sklearn.externals        import joblib
@@ -30,10 +30,8 @@ from time import time
 start0 = time()
 
 import pandas as pd
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from sklearn.decomposition import PCA, FastICA
 
-def setup_features(dataRaw, notFeatures=[], transformer=PCA(), feature_scaler=StandardScaler, label_scaler=None, verbose=False, returnAll=None):
+def setup_features(dataRaw, notFeatures=[], transformer=PCA(), feature_scaler=StandardScaler(), label_scaler=None, verbose=False, returnAll=None):
     """Example function with types documented in the docstring.
 
         For production level usage: All scaling and transformations must be done 
@@ -191,7 +189,7 @@ spitzerCalRawData     = pd.read_csv(spitzerCalFilename)
 features_SSscaled, labels_SSscaled = setup_features(dataRaw       = spitzerCalRawData,
                                                     notFeatures   = spitzerCalNotFeatures,
                                                     transformer   = None,
-                                                    feature_scaler= StandardScaler,
+                                                    feature_scaler= StandardScaler(),
                                                     label_scaler  = None,
                                                     verbose       = False,
                                                     returnAll     = None)
@@ -241,7 +239,7 @@ pca_cal_features_SSscaled, labels_SSscaled, spitzerCalRawData, \
     pca_trnsfrmr, label_sclr, feature_sclr = setup_features(dataRaw       = spitzerCalRawData, 
                                                             notFeatures   = spitzerCalNotFeatures, 
                                                             transformer   = None, 
-                                                            feature_scaler= StandardScaler,
+                                                            feature_scaler= StandardScaler(),
                                                             label_scaler  = None,
                                                             verbose       = False,
                                                             returnAll     = True)
@@ -310,7 +308,7 @@ if do_ica:
     ica_cal_feature_set  = setup_features(dataRaw       = spitzerCalRawData, 
                                           notFeatures   = spitzerCalNotFeatures, 
                                           transformer   = FastICA(), 
-                                          feature_scaler= StandardScaler,
+                                          feature_scaler= StandardScaler(),
                                           label_scaler  = None,
                                           verbose       = False, 
                                           returnAll     = 'features')
