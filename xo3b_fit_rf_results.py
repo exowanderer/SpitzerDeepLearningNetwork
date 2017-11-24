@@ -4,6 +4,7 @@ from functools import partial
 from lmfit     import Model, Parameters
 from pandas    import read_csv
 from pylab     import *;ion()
+from sys       import argv
 
 def bin_array(arr, uncs = None,  binsize=100, KeepTheChange = False):
     '''
@@ -115,24 +116,32 @@ iTdepth   = planet_params.depth.value
 iEcc      = planet_params.ecc.value*0.0 # this is wrong, but we can work with it
 iOmega    = planet_params.om.value*pi/180
 
+rf_data_norm     = xo3b_rf['RF_Predict'] / median(xo3b_rf['RF_Predict'])
+flux_data_norm   = xo3b_rf['flux']       / median(xo3b_rf['flux'])
+phots_clean_data = flux_data_norm / rf_data_norm
+
 initialParams_eclipse = Parameters()
 
-initialParams_eclipse.add('tCenter' , iTCenter, True)# , 0.0 , 1.0)
-initialParams_eclipse.add('edepth'  , iEdepth , True)# , 0.0 , 1.0)
+initialParams_eclipse.add_many( ('period', iPeriod, False),
+                                ('tCenter' , iTCenter, True),
+                                ('edepth'  , iEdepth , True),
+                                ('bImpact' , iBImpact, False), 
+                                ('rsap'    , iRsAp, False),
+                                ('tdepth'  , iTdepth, False),
+                                ('ecc'     , iEcc, False),
+                                ('omega'   , iOmega, False))
 
-partial_eclipse    = partial(batman_lmfit_model, period      = iPeriod, 
-                                                 bImpact     = iBImpact, 
-                                                 rsap        = iRsAp, 
-                                                 tdepth      = iTdepth, 
-                                                 ecc         = iEcc, 
-                                                 omega       = iOmega, 
-                                                 times       = xo3b_rf['bmjd'].values, 
-                                                 transittype = "secondary")
+                                'times'       = 
+                                'transittype' = "secondary")
 
-lcEclipse = Model(partial_eclipse)
+lcEclipse = Model(batman_lmfit_model, independent_vars=['times', 'transittype'])
 
 stime1 = time()
-fitResults_Eclipse = lcEclipse.fit(data, params=initialParams_eclipse, method='powell')
+fitResults_Eclipse = lcEclipse.fit( phots_clean_data, 
+                                    params      = initialParams_eclipse, 
+                                    method      = 'powell',
+                                    times       = xo3b_rf['bmjd'].values, 
+                                    transittype = "secondary")
 
 print('Operation took {} seconds'.format(time() - stime1))
 
