@@ -99,7 +99,7 @@ spitzerCalNotFeatures = ['flux', 'fluxerr', 'dn_peak', 'xycov', 't_cernox', 'xer
 #   - That means to use .transform instead of .fit_transform
 #   - See `predict_with_scaled_transformer`
 
-rf_savename   = 'randForest_STD_approach.save' if len(argv) < 2 else argv[2]
+rf_savename   = 'randForest_STD_approach.save' if len(argv) < 2 else argv[1]
 scaled_labels = False if len(argv) < 3 else argv[3]
 
 rf_type     = rf_savename.split('_')[1]
@@ -138,5 +138,6 @@ new_features, new_labels = predict_with_scaled_transformer(new_data, notFeatures
 new_rf_predict  = randForest.predict(new_features)
 
 new_rf_save_file_name = new_data_filename.replace('.csv', '_' + rf_type + '_save.txt')
-output_df = pd.DataFrame([new_data['bmjd'], new_data['flux'], new_data['fluxerr'], new_rf_predict], columns=['Times', 'Flux', 'Flux_Err', 'RF_Predict'])
+output_df = new_data['bmjd', 'flux', 'fluxerr']# , new_rf_predict], columns=['Times', 'Flux', 'Flux_Err', 'RF_Predict'])
+output_df['RF_Predict'] = new_rf_predict
 output_df.to_csv(new_rf_save_file_name)
