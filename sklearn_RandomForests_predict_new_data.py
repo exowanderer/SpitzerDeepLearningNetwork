@@ -99,15 +99,22 @@ spitzerCalNotFeatures = ['flux', 'fluxerr', 'dn_peak', 'xycov', 't_cernox', 'xer
 #   - That means to use .transform instead of .fit_transform
 #   - See `predict_with_scaled_transformer`
 
-rf_savename   = 'randForest_STD_approach.save' if len(argv) < 2 else argv[1]
-scaled_labels = False if len(argv) < 3 else argv[3]
+try:
+    new_data_filename   = argv[1]
+except:
+    raise FileError('Usage: python sklearn_RandomForests_predict_new_data.py INPUT_CSV_FILENAME')
+
+rf_savename   = 'randForest_STD_approach.save' if len(argv) < 3 else argv[2]
+scaled_labels = False if len(argv) < 4 else argv[3]
 
 rf_type     = rf_savename.split('_')[1]
 if rf_savename.split('_')[2] != 'approach.save':
     rf_type = rf_type + '_' + rf_savename.split('_')[2]
 
 # THIS TAKES A LONG TIME!! (~30 minutes)
+start = time()
 randForest  = joblib.load(rf_savename)
+print('Loading {} took {} seconds'.format(rf_savename, time() - start)))
 
 # Need to Scale the Labels based off of the calibration distribution
 if scaled_labels:
@@ -123,11 +130,6 @@ if 'pca' in rf_savename.lower():
     pca_trnsfrmr  = joblib.load('spitzerCalFeaturePCA_trnsfrmr.save')
 else:
     pca_trnsfrmr  = None
-
-try:
-    new_data_filename   = argv[1]
-except:
-    raise FileError('Usage: python sklearn_RandomForests_predict_new_data.py CSV_FILENAME')
 
 new_data  = pd.read_csv(new_data_filename)
 
