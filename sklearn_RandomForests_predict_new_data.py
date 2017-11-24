@@ -138,5 +138,5 @@ new_features, new_labels = predict_with_scaled_transformer(new_data, notFeatures
 new_rf_predict  = randForest.predict(new_features)
 
 new_rf_save_file_name = new_data_filename.replace('.csv', '_' + rf_type + '_save.txt')
-
-np.savetxt(new_rf_save_file_name, np.transpose([new_data['bmjd'], new_data['flux'], new_data['fluxerr'], new_rf_predict]), header='Times\t\t\tFlux\t\t\tFlux_Err\t\tRF_Predict')
+output_df = pd.DataFrame([new_data['bmjd'], new_data['flux'], new_data['fluxerr'], new_rf_predict], columns=['Times', 'Flux', 'Flux_Err', 'RF_Predict'])
+output_df.to_csv(new_rf_save_file_name)
