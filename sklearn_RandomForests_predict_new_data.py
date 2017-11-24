@@ -121,6 +121,8 @@ feature_sclr  = joblib.load('spitzerCalFeatureScaler_fit.save')
 if 'pca' in rf_savename.lower():
     # Need to Transform the Scaled Features based off of the calibration distribution
     pca_trnsfrmr  = joblib.load('spitzerCalFeaturePCA_trnsfrmr.save')
+else:
+    pca_trnsfrmr  = None
 
 try:
     new_data_filename   = argv[1]
@@ -135,4 +137,6 @@ new_features, new_labels = predict_with_scaled_transformer(new_data, notFeatures
 
 new_rf_predict  = randForest.predict(new_features)
 
-np.savetxt(new_data_filename.replace('.csv', '_' + rf_type + '_save.txt'), np.transpose([new_data['bmjd'], new_data['flux'], new_data['fluxerr'], new_rf_predict]), header='Times\t\t\tFlux\t\t\tFlux_Err\t\tRF_Predict')
+new_rf_save_file_name = new_data_filename.replace('.csv', '_' + rf_type + '_save.txt')
+
+np.savetxt(new_rf_save_file_name, np.transpose([new_data['bmjd'], new_data['flux'], new_data['fluxerr'], new_rf_predict]), header='Times\t\t\tFlux\t\t\tFlux_Err\t\tRF_Predict')

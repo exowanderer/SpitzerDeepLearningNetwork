@@ -383,7 +383,7 @@ if do_rfi:
     print('RFI Pretrained Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(randForest_RFI_oob*100, randForest_RFI_Rsq*100, time()-start))
 
     joblib.dump(randForest_RFI, 'randForest_RFI_approach.save')
-    del randForest_RFI, randForest_RFI_oob, randForest_RFI_pred, randForest_RFI_Rsq, rfi_cal_feature_set
+    del randForest_RFI, randForest_RFI_oob, randForest_RFI_pred, randForest_RFI_Rsq
     _ = gc.collect()
 
 if do_rfi_pca:
@@ -393,14 +393,6 @@ if do_rfi_pca:
 
     pca = PCA()
     pca_rfi_cal_feature_set = pca.fit_transform(rfi_cal_feature_set)
-    print('took {} seconds'.format(time() - start))
-
-    # **ICA Pretrained Random Forest Approach**
-    print('Performing ICA on RFI', end=" ")
-    ica = FastICA()
-    start = time()
-
-    ica_rfi_cal_feature_set = ica.fit_transform(rfi_cal_feature_set)
     print('took {} seconds'.format(time() - start))
 
     print('Performing RFI with PCA Random Forest')
@@ -436,8 +428,16 @@ if do_rfi_pca:
     _ = gc.collect()
 
 if do_rfi_ica:
+    # **ICA Pretrained Random Forest Approach**
+    print('Performing ICA on RFI', end=" ")
+    ica = FastICA()
+    start = time()
+    
+    ica_rfi_cal_feature_set = ica.fit_transform(rfi_cal_feature_set)
+    print('took {} seconds'.format(time() - start))
+    
     print('Performing RFI with ICA Random Forest')
-
+    
     randForest_RFI_ICA = RandomForestRegressor( n_estimators=nTrees, 
                                                 criterion='mse', 
                                                 max_depth=None, 
