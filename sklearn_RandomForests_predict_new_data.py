@@ -114,7 +114,7 @@ if rf_savename.split('_')[2] != 'approach.save':
 # THIS TAKES A LONG TIME!! (~30 minutes)
 start = time()
 randForest  = joblib.load(rf_savename)
-print('Loading {} took {} seconds'.format(rf_savename, time() - start)))
+print('Loading {} took {} seconds'.format(rf_savename, time() - start))
 
 # Need to Scale the Labels based off of the calibration distribution
 if scaled_labels:
@@ -140,6 +140,6 @@ new_features, new_labels = predict_with_scaled_transformer(new_data, notFeatures
 new_rf_predict  = randForest.predict(new_features)
 
 new_rf_save_file_name = new_data_filename.replace('.csv', '_' + rf_type + '_save.txt')
-output_df = new_data['bmjd', 'flux', 'fluxerr']# , new_rf_predict], columns=['Times', 'Flux', 'Flux_Err', 'RF_Predict'])
+output_df = new_data[['bmjd', 'flux', 'fluxerr']]# , new_rf_predict], columns=['Times', 'Flux', 'Flux_Err', 'RF_Predict'])
 output_df['RF_Predict'] = new_rf_predict
 output_df.to_csv(new_rf_save_file_name)
