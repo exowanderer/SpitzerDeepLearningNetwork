@@ -147,7 +147,7 @@ iInc      = planet_params.i.value
 iApRs     = planet_params.ar.value
 iEdepth   = 1520/1e6 # From Ingalls et al 2016
 iTdepth   = planet_params.depth.value
-iEcc      = planet_params.ecc.value*0.0 # this is wrong, but we can work with it
+iEcc      = planet_params.ecc.value#*0.0 # this is wrong, but we can work with it
 iOmega    = planet_params.om.value*pi/180
 
 rf_data_norm     = xo3b_rf['RF_Predict'].values / median(xo3b_rf['RF_Predict'].values)
