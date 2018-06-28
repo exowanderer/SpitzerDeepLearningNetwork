@@ -10,8 +10,6 @@ warnings.filterwarnings("ignore")
 
 import gc
 
-from sys import argv
-
 # from matplotlib import pyplot as plt
 from sklearn.model_selection  import train_test_split
 from sklearn.preprocessing    import StandardScaler, MinMaxScaler, minmax_scale
@@ -31,7 +29,8 @@ start0 = time()
 
 import pandas as pd
 
-def setup_features(dataRaw, notFeatures=[], transformer=PCA(), feature_scaler=StandardScaler(), label_scaler=None, verbose=False, returnAll=None):
+def setup_features(dataRaw, notFeatures=[], transformer=PCA(), feature_scaler=StandardScaler(), 
+                    label_scaler=None, verbose=False, returnAll=None):
     """Example function with types documented in the docstring.
 
         For production level usage: All scaling and transformations must be done 
@@ -174,21 +173,47 @@ for k, sfile in enumerate(set_of_save_files):
     if sfile in files_in_directory:
         perform_rf_mode[k] = False
 
-if len(argv) > 1:
-    for k, arg in enumerate(argv):
-        perform_rf_mode[k] = bool(arg)
+# if len(argv) > 1:
+#     for k, arg in enumerate(argv):
+#         perform_rf_mode[k] = bool(arg)
 
-do_std, do_pca, do_ica, do_rfi, do_rfi_pca, do_rfi_ica = perform_rf_mode
+# do_std, do_pca, do_ica, do_rfi, do_rfi_pca, do_rfi_ica = perform_rf_mode
 
 # ## Load CSVs data
-spitzerCalNotFeatures = ['flux', 'fluxerr', 'dn_peak', 'xycov', 't_cernox', 'xerr', 'yerr']
+spitzerCalNotFeatures = ['flux', 'fluxerr', 'dn_peak', 'xycov', 't_cernox', 'xerr', 'yerr', 'sigma_bg_flux']
 spitzerCalFilename    ='pmap_ch2_0p1s_x4_rmulti_s3_7.csv'
 
 spitzerCalRawData     = pd.read_csv(spitzerCalFilename)
 
-features_SSscaled, labels_SSscaled = setup_features(dataRaw       = spitzerCalRawData,
-                                                    notFeatures   = spitzerCalNotFeatures,
-                                                    transformer   = None,
+spitzerCalRawData['fluxerr']        = spitzerCalRawData['fluxerr']      / np.median(spitzerCalRawData['flux'].values)
+spitzerCalRawData['bg_flux']        = spitzerCalRawData['bg_flux']      / np.median(spitzerCalRawData['flux'].values)
+spitzerCalRawData['sigma_bg_flux']  = spitzerCalRawData['sigma_bg_flux']/ np.median(spitzerCalRawData['flux'].values)
+spitzerCalRawData['flux']           = spitzerCalRawData['flux']         / np.median(spitzerCalRawData['flux'].values)
+
+spitzerCalResampled = {}
+
+bmjd_err= np.median(0.5*np.diff(spitzerCalRawData['bmjd']))
+
+n_resamp= 100
+spitzerCalResampled['flux']   = np.random.normal(spitzerCalRawData['flux']   , spitzerCalRawData['fluxerr']      , size=(n_resamp,len(spitzerCalRawData))).flatten()
+spitzerCalResampled['xpos']   = np.random.normal(spitzerCalRawData['xpos']   , spitzerCalRawData['xerr']         , size=(n_resamp,len(spitzerCalRawData))).flatten()
+spitzerCalResampled['xpos']   = np.random.normal(spitzerCalRawData['ypos']   , spitzerCalRawData['yerr']         , size=(n_resamp,len(spitzerCalRawData))).flatten()
+spitzerCalResampled['xfwhm']  = np.random.normal(spitzerCalRawData['xfwhm']  , spitzerCalRawData['xerr']         , size=(n_resamp,len(spitzerCalRawData))).flatten()
+spitzerCalResampled['yfwhm']  = np.random.normal(spitzerCalRawData['yfwhm']  , spitzerCalRawData['yerr']         , size=(n_resamp,len(spitzerCalRawData))).flatten()
+spitzerCalResampled['bg_flux']= np.random.normal(spitzerCalRawData['bg_flux'], spitzerCalRawData['sigma_bg_flux'], size=(n_resamp,len(spitzerCalRawData))).flatten()
+spitzerCalResampled['bmjd']   = np.random.normal(spitzerCalRawData['bmjd']   , bmjd_err                          , size=(n_resamp,len(spitzerCalRawData))).flatten()
+spitzerCalResampled['np']     = np.random.normal(spitzerCalRawData['np']     , np.sqrt(spitzerCalRawData['yerr']), size=(n_resamp,len(spitzerCalRawData))).flatten()
+
+
+for colname in tqdm(['pix{}'.format(k) for k in range(1,10)]):
+    spitzerCalResampled[colname]  = np.random.normal(spitzerCalRawData[colname], spitzerCalRawData[colname]*spitzerCalRawData['fluxerr'], size=(n_resamp,len(spitzerCalRawData))).flatten()
+
+spitzerCalResampled = pd.DataFrame(spitzerCalResampled)
+
+# features_SSscaled, labels_SSscaled = setup_features(dataRaw       = spitzerCalRawData,
+features_SSscaled, labels_SSscaled = setup_features(dataRaw       = spitzerCalResampled,
+                                                    notFeatures   = [],#spitzerCalNotFeatures,
+                                                    transformer   = PCA(), # THIS IS PCA-RF -- NOT DEFAULT
                                                     feature_scaler= StandardScaler(),
                                                     label_scaler  = None,
                                                     verbose       = False,
