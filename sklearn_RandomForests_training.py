@@ -18,6 +18,8 @@ from sklearn.decomposition    import PCA, FastICA
 from sklearn.externals        import joblib
 from sklearn.metrics          import r2_score
 
+from tqdm import tqdm
+
 from glob                     import glob
 
 # plt.rcParams['figure.dpi'] = 300

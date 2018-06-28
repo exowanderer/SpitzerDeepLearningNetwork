@@ -1,4 +1,6 @@
-from tpot import TPOTClassifier
+from tpot import TPOTRegressor
+
+from functools import partial
 
 import pandas as pd
 import numpy as np
@@ -160,6 +162,29 @@ def predict_with_scaled_transformer(dataRaw, notFeatures=None, transformer=None,
     
     return features_trnsfrmd, labels_scaled
 
+
+def std_per_point(vec, kernel_size=50):
+    sVec    = vec.size
+    indices = np.arange(sVec)
+    stds    = np.zeros(sVec)
+    
+    sWing = (kernel_size - 1)//2 # Number of Pixel left and right of center: 'wing'
+    
+    for k in range(sVec):
+        if k - sWing < 0:
+            inds      = np.concatenate([indices[sVec + k-sWing:],indices[:k+sWing+1]])
+        elif k+sWing+1 > sVec:
+            inds      = np.concatenate([indices[k-sWing:],indices[:k+sWing-sVec+1]])
+        else:
+            inds      = indices[k-sWing:k+sWing+1]
+            
+        stds[k]   = np.std(vec[inds])
+    
+    return stds
+
+def custom_score(y_true, y_pred, y_err):
+    return sum(((y_true - y_pred)/y_err)**2.)
+
 # ## Load CSVs data
 spitzerCalNotFeatures = ['flux', 'fluxerr', 'dn_peak', 'xycov', 't_cernox', 'xerr', 'yerr', 'xfwhm', 'yfwhm']
 spitzerCalFilename    ='pmap_ch2_0p1s_x4_rmulti_s3_7.csv'
@@ -174,20 +199,25 @@ features_SSscaled, labels_SSscaled = setup_features(dataRaw       = spitzerCalRa
                                                     verbose       = False,
                                                     returnAll     = None)
 
-idx_shuffle = np.random.permutation(len(spitzerCalRawData))
+idx         = np.arange(len(spitzerCalRawData))
+idx_shuffle = np.random.permutation(idx)
 
 #clean the data
 labels_SSscaled_shuffled    = labels_SSscaled[idx_shuffle]
 features_SSscaled_shuffled  = features_SSscaled[idx_shuffle]
 
-idx = np.arange(len(spitzerCalRawData))
+labels_SSscaled_shuffled_err = std_per_point(labels_SSscaled_shuffled)
+
+loss = partial(custom_score, y_err = labels_SSscaled_shuffled_err)
+loss.__name__ = 'loss'
+
 #Split training, testing, and validation data
 training_indices, validation_indices = training_indices, testing_indices = train_test_split(idx, train_size=0.75, test_size=0.25)
 
-
 #Let Genetic Programming find best ML model and hyperparameters
-tpot = TPOTClassifier(generations=5, verbosity=2)
-tpot.fit(features_SSscaled_shuffled[training_indices], labels_SSscaled_shuffled[training_indicss])
+tpot = TPOTRegressor(generations=100, verbosity=2, n_jobs=-1, scoring=loss)
+
+tpot.fit(features_SSscaled_shuffled[training_indices], labels_SSscaled_shuffled[training_indices])
 
 #Score the accuracy
 tpot.score(features_SSscaled_shuffled[validation_indices].values, labels_SSscaled_shuffled[validation_indices])
