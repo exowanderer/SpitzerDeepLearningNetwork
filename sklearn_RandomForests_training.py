@@ -10,6 +10,7 @@ warnings.filterwarnings("ignore")
 
 import gc
 
+from argparse import ArgumentParse
 # from matplotlib import pyplot as plt
 from sklearn.model_selection  import train_test_split
 from sklearn.preprocessing    import StandardScaler, MinMaxScaler, minmax_scale
@@ -30,6 +31,15 @@ from time import time
 start0 = time()
 
 import pandas as pd
+
+
+from argparse import ArgumentParser
+ap = ArgumentParser()
+ap.add_argument('-ns'  , '--n_resamp', required=True , type=int , default=0    , help="Number of resamples to perform (GBR=1; No Resamp=0)")
+ap.add_argument('-nt'  , '--n_trees' , required=True , type=int , default=100  , help="Number of trees in the forest")
+ap.add_argument('--gbr', '--do_gbr'  , required=False, type=bool, default=False, help="Use Gradient Boosting Regression with PCA preprocessing")
+ap.add_argument('-c'   , '--core'    , required=False, type=int , default=0    , help="Which Core to Use GBR only Uses 1 Core at a time.")
+args = vars(ap.parse_args())
 
 def setup_features(dataRaw, label='flux', notFeatures=[], transformer=PCA(whiten=True), feature_scaler=StandardScaler(), 
                     label_scaler=None, verbose=False, returnAll=None):
@@ -199,13 +209,13 @@ spitzerCalRawData['bmjd_err']       = np.median(0.5*np.diff(spitzerCalRawData['b
 spitzerCalRawData['np_err']         = np.sqrt(spitzerCalRawData['yerr'])
 
 n_PLD   = 9
-n_resamp= 1
+n_resamp= args['n_resamp']
 
 resampling_inputs = ['flux', 'xpos', 'ypos', 'xfwhm', 'yfwhm', 'bg_flux', 'bmjd', 'np'] + ['pix{}'.format(k) for k in range(1,10)]
 resampling_errors = ['fluxerr', 'xerr', 'yerr', 'xerr', 'yerr', 'sigma_bg_flux', 'bmjd_err', 'np_err'] + ['fluxerr']*n_PLD
 
 spitzerCalResampled = {}
-if n_resamp > 1:
+if n_resamp > 0:
     print('Starting Resampling')
     for colname, colerr in tqdm(zip(resampling_inputs, resampling_errors), total=len(resampling_inputs)):
         if 'pix' in colname:
@@ -245,7 +255,7 @@ features_SSscaled, labels_SSscaled = setup_features(dataRaw       = spitzerCalRe
 
 pca_cal_features_SSscaled = features_SSscaled
 
-nTrees = 1000
+nTrees = args['n_trees']
 
 start = time()
 print('Grabbing PCA', end=" ")
@@ -280,7 +290,7 @@ print('took {} seconds'.format(time() - start))
 #     joblib.dump(feature_sclr, 'spitzerCalFeatureScaler_fit.save')
 #     # Need to Transform the Scaled Features based off of the calibration distribution
 #     joblib.dump(pca_trnsfrmr, 'spitzerCalFeaturePCA_trnsfrmr.save')
-do_pca_rfr= False
+do_pca_rfr= not args['do_gbr']
 if do_pca_rfr:
     print('Performing PCA Random Forest')
     randForest_PCA = RandomForestRegressor( n_estimators=nTrees, 
@@ -314,7 +324,7 @@ if do_pca_rfr:
     # del randForest_PCA, randForest_PCA_pred
     # _ = gc.collect()
 
-do_pca_gbr=True
+do_pca_gbr= args['do_gbr']
 if do_pca_gbr:
     print('Performing Gradient Boosting Regression with PCA Random Forest and Quantile Loss')
     randForest_PCA_GBR = GradientBoostingRegressor(loss='quantile', 
@@ -350,9 +360,16 @@ if do_pca_gbr:
     randForest_PCA_GBR_Rsq = r2_score(labels_SSscaled, randForest_PCA_GBR_pred)
     
     print('PCA Pretrained Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(randForest_PCA_oob*100, randForest_PCA_Rsq*100, time()-start))
-    ap = ArgumentParser()
-    ap.add_argument('-c', '--core', required=True, help="Which Core to Use GBR only Uses 1 Core at a time.")
-    joblib.dump(randForest_PCA_GBR, 'randForest_GBR_PCA_approach_{}trees_{}resamples.save'.format(nTrees, n_resamp))
+    
+    if 'core' not in args.keys():
+        from glob import glob
+        existing_saves = glob('randForest_GBR_PCA_approach_{}trees_{}resamples_*core.save'.format(nTrees, n_resamp))
+        core_nums = []
+        for fname in existing_saves:
+            core_nums.append(fname.split('randForest_GBR_PCA_approach_{}trees_{}resamples_'.format(nTrees, n_resamp))[-1].split('core.save')[0])
+        core = max(core_nums) + 1
+    
+    joblib.dump(randForest_PCA_GBR, 'randForest_GBR_PCA_approach_{}trees_{}resamples_{}core.save'.format(nTrees, n_resamp, args['core']))
     
     # del randForest_PCA, randForest_PCA_pred
     # _ = gc.collect()
