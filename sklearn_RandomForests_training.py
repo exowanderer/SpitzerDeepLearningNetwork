@@ -31,7 +31,7 @@ start0 = time()
 
 import pandas as pd
 
-def setup_features(dataRaw, notFeatures=[], transformer=PCA(whiten=True), feature_scaler=StandardScaler(), 
+def setup_features(dataRaw, label='flux', notFeatures=[], transformer=PCA(whiten=True), feature_scaler=StandardScaler(), 
                     label_scaler=None, verbose=False, returnAll=None):
     """Example function with types documented in the docstring.
 
@@ -51,9 +51,12 @@ def setup_features(dataRaw, notFeatures=[], transformer=PCA(whiten=True), featur
             https://github.com/ExoWanderer/
 
     """
+    notFeatures = list(notFeatures)
+    notFeatures.append(label) if label not in notFeatures else None
+    
     if isinstance(dataRaw,str):
         dataRaw       = pd.read_csv(filename)
-        
+    
     dataColNames  = dataRaw.columns
     PLDpixels     = {}
     for key in dataRaw.columns.values:
@@ -77,7 +80,7 @@ def setup_features(dataRaw, notFeatures=[], transformer=PCA(whiten=True), featur
     
     feature_columns = inputData.drop(notFeatures,axis=1).columns.values
     features        = inputData.drop(notFeatures,axis=1).values
-    labels          = inputData['flux'].values
+    labels          = inputData[label].values
     print(features.shape)
     # **PCA Preconditioned Random Forest Approach**
     if verbose: print('Performing PCA', end=" ")
@@ -200,7 +203,7 @@ n_resamp= 100
 
 spitzerCalResampled['flux']   = np.random.normal(spitzerCalRawData['flux']   , spitzerCalRawData['fluxerr']      , size=(n_resamp,len(spitzerCalRawData))).flatten()
 spitzerCalResampled['xpos']   = np.random.normal(spitzerCalRawData['xpos']   , spitzerCalRawData['xerr']         , size=(n_resamp,len(spitzerCalRawData))).flatten()
-spitzerCalResampled['xpos']   = np.random.normal(spitzerCalRawData['ypos']   , spitzerCalRawData['yerr']         , size=(n_resamp,len(spitzerCalRawData))).flatten()
+spitzerCalResampled['ypos']   = np.random.normal(spitzerCalRawData['ypos']   , spitzerCalRawData['yerr']         , size=(n_resamp,len(spitzerCalRawData))).flatten()
 spitzerCalResampled['xfwhm']  = np.random.normal(spitzerCalRawData['xfwhm']  , spitzerCalRawData['xerr']         , size=(n_resamp,len(spitzerCalRawData))).flatten()
 spitzerCalResampled['yfwhm']  = np.random.normal(spitzerCalRawData['yfwhm']  , spitzerCalRawData['yerr']         , size=(n_resamp,len(spitzerCalRawData))).flatten()
 spitzerCalResampled['bg_flux']= np.random.normal(spitzerCalRawData['bg_flux'], spitzerCalRawData['sigma_bg_flux'], size=(n_resamp,len(spitzerCalRawData))).flatten()
@@ -224,7 +227,7 @@ features_SSscaled, labels_SSscaled = setup_features(dataRaw       = spitzerCalRe
 
 pca_cal_features_SSscaled = features_SSscaled
 
-nTrees = 10
+nTrees = 100
 
 if do_std:
     # **Standard Random Forest Approach**
