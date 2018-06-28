@@ -61,20 +61,18 @@ def setup_features(dataRaw, label='flux', notFeatures=[], transformer=PCA(whiten
             https://github.com/ExoWanderer/
 
     """
-    notFeatures = list(notFeatures)
-    notFeatures.append(label) if label not in notFeatures else None
+    # notFeatures = list(notFeatures)
+    # notFeatures.append(label) if label not in notFeatures else None
     
-    if isinstance(dataRaw,str):
-        dataRaw       = pd.read_csv(filename)
+    dataRaw       = pd.read_csv(filename) if isinstance(dataRaw,str) else dataRaw
     
-    dataColNames  = dataRaw.columns
-    PLDpixels     = {}
-    for key in dataRaw.columns.values:
-        if 'pix' in key:
-            PLDpixels[key] = dataRaw[key]
+    # PLDpixels     = {}
+    # for key in dataRaw.columns.values:
+    #     if 'pix' in key:
+    #         PLDpixels[key] = dataRaw[key]
     
-    PLDpixels     = pd.DataFrame(PLDpixels)
-    # PLDpixels     = pd.DataFrame({key:dataRaw[key] for key in dataRaw.columns.values if 'pix' in key})
+    # PLDpixels     = pd.DataFrame(PLDpixels)
+    PLDpixels     = pd.DataFrame({key:dataRaw[key] for key in dataRaw.columns if 'pix' in key})
     PLDnorm       = np.sum(np.array(PLDpixels),axis=1)
     PLDpixels     = (PLDpixels.T / PLDnorm).T
     
@@ -83,16 +81,22 @@ def setup_features(dataRaw, label='flux', notFeatures=[], transformer=PCA(whiten
         if key in PLDpixels.columns:
             inputData[key] = PLDpixels[key]
     
-    testPLD = np.array(pd.DataFrame({key:inputData[key] for key in inputData.columns.values if 'pix' in key}))
-    if verbose: 
-        assert(not sum(abs(testPLD - np.array(PLDpixels))).all())
-        print('Confirmed that PLD Pixels have been Normalized to Spec')
+    for key in dataRaw.columns:
+        if key in PLDpixels.columns:
+            inputData[key] = PLDpixels[key]
+    
+    testPLD = np.array(pd.DataFrame({key:inputData[key] for key in inputData.columns.values if 'pix' in key})) if verbose else None
+    
+    assert(not sum(abs(testPLD - np.array(PLDpixels))).all())  if verbose else None
+    print('Confirmed that PLD Pixels have been Normalized to Spec') if verbose else None
     
     labels          = inputData[label].values
+    inputData       = inputData.drop(label, axis=1) # remove
+    
     feature_columns = inputData.drop(notFeatures,axis=1).columns.values
     features        = inputData.drop(notFeatures,axis=1).values
     
-    print('Shape of Features Array is', features.shape)
+    print('Shape of Features Array is', features.shape) if verbose else None
     
     if verbose: start = time()
     
@@ -100,7 +104,7 @@ def setup_features(dataRaw, label='flux', notFeatures=[], transformer=PCA(whiten
     features_scaled   = feature_scaler.fit_transform(features)             if feature_scaler is not None else features
     features_trnsfrmd = transformer.fit_transform(features_scaled)         if transformer    is not None else features_scaled
     
-    if verbose: print('took {} seconds'.format(time() - start))
+    print('took {} seconds'.format(time() - start)) if verbose else None
     
     if returnAll == True:
         return features_trnsfrmd, labels_scaled, dataRaw, transformer, label_scaler, feature_scaler
@@ -135,16 +139,15 @@ def predict_with_scaled_transformer(dataRaw, notFeatures=None, transformer=None,
             https://github.com/ExoWanderer/
 
     """
-    if isinstance(dataRaw,str):
-        dataRaw       = pd.read_csv(filename)
+    dataRaw = pd.read_csv(filename) if isinstance(dataRaw,str) else dataRaw
     
-    dataColNames  = dataRaw.columns
-    PLDpixels     = {}
-    for key in dataRaw.columns.values:
-        if 'pix' in key:
-            PLDpixels[key] = dataRaw[key]
+    PLDpixels = pd.DataFrame({key:dataRaw[key] for key in dataRaw.columns if 'pix' in key})
+    # PLDpixels     = {}
+    # for key in dataRaw.columns.values:
+    #     if 'pix' in key:
+    #         PLDpixels[key] = dataRaw[key]
     
-    PLDpixels     = pd.DataFrame(PLDpixels)
+    # PLDpixels     = pd.DataFrame(PLDpixels)
     
     PLDnorm       = np.sum(np.array(PLDpixels),axis=1)
     PLDpixels     = (PLDpixels.T / PLDnorm).T
