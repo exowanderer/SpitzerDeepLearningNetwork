@@ -196,7 +196,8 @@ spitzerCalResampled = {}
 
 bmjd_err= np.median(0.5*np.diff(spitzerCalRawData['bmjd']))
 
-n_resamp= 100
+n_resamp= 10
+
 spitzerCalResampled['flux']   = np.random.normal(spitzerCalRawData['flux']   , spitzerCalRawData['fluxerr']      , size=(n_resamp,len(spitzerCalRawData))).flatten()
 spitzerCalResampled['xpos']   = np.random.normal(spitzerCalRawData['xpos']   , spitzerCalRawData['xerr']         , size=(n_resamp,len(spitzerCalRawData))).flatten()
 spitzerCalResampled['xpos']   = np.random.normal(spitzerCalRawData['ypos']   , spitzerCalRawData['yerr']         , size=(n_resamp,len(spitzerCalRawData))).flatten()
@@ -239,7 +240,7 @@ if do_std:
                                             bootstrap=True, \
                                             oob_score=True, \
                                             random_state=42, \
-                                            verbose=0, \
+                                            verbose=True, \
                                             warm_start=True)
 
     start=time()
@@ -308,7 +309,7 @@ if do_pca:
                                             bootstrap=True, 
                                             oob_score=True, 
                                             random_state=42, 
-                                            verbose=0, 
+                                            verbose=True, 
                                             warm_start=True)
     
     print(pca_cal_features_SSscaled.shape, labels_SSscaled.shape)
@@ -354,7 +355,7 @@ if do_ica:
                                             oob_score=True, 
                                             n_jobs=-1, 
                                             random_state=42, 
-                                            verbose=0, 
+                                            verbose=True, 
                                             warm_start=True)
     
     start=time()
@@ -397,7 +398,7 @@ if do_rfi:
                                             bootstrap=True, \
                                             oob_score=True, \
                                             random_state=42, \
-                                            verbose=0, \
+                                            verbose=True, \
                                             warm_start=True)
 
     start=time()
@@ -436,7 +437,7 @@ if do_rfi_pca:
                                                 oob_score=True, 
                                                 n_jobs=-1, 
                                                 random_state=42, 
-                                                verbose=0, 
+                                                verbose=True, 
                                                 warm_start=True)
 
     start=time()
@@ -477,7 +478,7 @@ if do_rfi_ica:
                                                 oob_score=True, 
                                                 n_jobs=-1, 
                                                 random_state=42, 
-                                                verbose=0, 
+                                                verbose=True, 
                                                 warm_start=True)
 
     start=time()
