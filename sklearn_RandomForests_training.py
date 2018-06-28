@@ -236,7 +236,6 @@ features_SSscaled, labels_SSscaled = setup_features(dataRaw       = spitzerCalRe
                                                     verbose       = False,
                                                     returnAll     = None)
 
-
 pca_cal_features_SSscaled = features_SSscaled
 
 nTrees = 1000
@@ -274,8 +273,8 @@ print('took {} seconds'.format(time() - start))
 #     joblib.dump(feature_sclr, 'spitzerCalFeatureScaler_fit.save')
 #     # Need to Transform the Scaled Features based off of the calibration distribution
 #     joblib.dump(pca_trnsfrmr, 'spitzerCalFeaturePCA_trnsfrmr.save')
-do_pca= True
-if do_pca:
+do_pca_rfr= False
+if do_pca_rfr:
     print('Performing PCA Random Forest')
     randForest_PCA = RandomForestRegressor( n_estimators=nTrees, 
                                             n_jobs=-1, 
@@ -291,6 +290,49 @@ if do_pca:
                                             random_state=42, 
                                             verbose=True, 
                                             warm_start=True)
+    
+    print(pca_cal_features_SSscaled.shape, labels_SSscaled.shape)
+    
+    start=time()
+    randForest_PCA.fit(pca_cal_features_SSscaled, labels_SSscaled)
+    
+    randForest_PCA_oob = randForest_PCA.oob_score_
+    randForest_PCA_pred= randForest_PCA.predict(pca_cal_features_SSscaled)
+    randForest_PCA_Rsq = r2_score(labels_SSscaled, randForest_PCA_pred)
+    
+    print('PCA Pretrained Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(randForest_PCA_oob*100, randForest_PCA_Rsq*100, time()-start))
+    
+    joblib.dump(randForest_PCA, 'randForest_PCA_approach_{}trees_{}resamples.save'.format(nTrees, n_resamp))
+    
+    # del randForest_PCA, randForest_PCA_pred
+    # _ = gc.collect()
+
+do_pca_gbr=False
+if do_pca_gbr:
+    print('Performing PCA Random Forest')
+    randForest_PCA_GBR = GradientBoostingRegressor(loss='quantile', 
+                                                   learning_rate=0.1, 
+                                                   n_estimators=nTrees, 
+                                                   n_jobs=-1,
+                                                   bootstrap=True,
+                                                   oob_score=True, 
+                                                   subsample=1.0, 
+                                                   criterion='friedman_mse', 
+                                                   min_samples_split=2, 
+                                                   min_samples_leaf=1, 
+                                                   min_weight_fraction_leaf=0.0, 
+                                                   max_depth=None, 
+                                                   min_impurity_decrease=0.0, 
+                                                   min_impurity_split=None, 
+                                                   init=None, 
+                                                   random_state=42, 
+                                                   max_features='auto', 
+                                                   alpha=0.9, 
+                                                   verbose=True, 
+                                                   max_leaf_nodes=None,
+                                                   warm_start=True)
+
+                                                   presort='auto')
     
     print(pca_cal_features_SSscaled.shape, labels_SSscaled.shape)
     
