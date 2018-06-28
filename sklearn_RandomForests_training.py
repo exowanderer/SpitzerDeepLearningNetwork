@@ -213,7 +213,7 @@ for colname in tqdm(['pix{}'.format(k) for k in range(1,10)]):
 
 spitzerCalResampled = pd.DataFrame(spitzerCalResampled)
 
-# features_SSscaled, labels_SSscaled = setup_features(dataRaw       = spitzerCalRawData,
+# features_SSscaled, labels_SSscaled = setup_features(dataRaw       = spitzerCalResampled,
 features_SSscaled, labels_SSscaled = setup_features(dataRaw       = spitzerCalResampled,
                                                     notFeatures   = [],#spitzerCalNotFeatures,
                                                     transformer   = PCA(whiten=True), # THIS IS PCA-RF -- NOT DEFAULT
@@ -267,7 +267,7 @@ if do_std:
 start = time()
 print('Grabbing PCA', end=" ")
 pca_cal_features_SSscaled, labels_SSscaled, spitzerCalRawData, \
-    pca_trnsfrmr, label_sclr, feature_sclr = setup_features(dataRaw       = spitzerCalRawData, 
+    pca_trnsfrmr, label_sclr, feature_sclr = setup_features(dataRaw       = spitzerCalResampled, 
                                                             notFeatures   = spitzerCalNotFeatures, 
                                                             transformer   = None, 
                                                             feature_scaler= StandardScaler(),
@@ -336,7 +336,7 @@ if do_ica:
     print('Performing ICA Random Forest')
     start = time()
     print('Performing ICA', end=" ")
-    ica_cal_feature_set  = setup_features(dataRaw       = spitzerCalRawData, 
+    ica_cal_feature_set  = setup_features(dataRaw       = spitzerCalResampled, 
                                           notFeatures   = spitzerCalNotFeatures, 
                                           transformer   = FastICA(), 
                                           feature_scaler= StandardScaler(),
