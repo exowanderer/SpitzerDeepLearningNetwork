@@ -31,7 +31,7 @@ start0 = time()
 
 import pandas as pd
 
-def setup_features(dataRaw, notFeatures=[], transformer=PCA(), feature_scaler=StandardScaler(), 
+def setup_features(dataRaw, notFeatures=[], transformer=PCA(whiten=True), feature_scaler=StandardScaler(), 
                     label_scaler=None, verbose=False, returnAll=None):
     """Example function with types documented in the docstring.
 
@@ -206,7 +206,6 @@ spitzerCalResampled['yfwhm']  = np.random.normal(spitzerCalRawData['yfwhm']  , s
 spitzerCalResampled['bg_flux']= np.random.normal(spitzerCalRawData['bg_flux'], spitzerCalRawData['sigma_bg_flux'], size=(n_resamp,len(spitzerCalRawData))).flatten()
 spitzerCalResampled['bmjd']   = np.random.normal(spitzerCalRawData['bmjd']   , bmjd_err                          , size=(n_resamp,len(spitzerCalRawData))).flatten()
 spitzerCalResampled['np']     = np.random.normal(spitzerCalRawData['np']     , np.sqrt(spitzerCalRawData['yerr']), size=(n_resamp,len(spitzerCalRawData))).flatten()
-
 
 for colname in tqdm(['pix{}'.format(k) for k in range(1,10)]):
     spitzerCalResampled[colname]  = np.random.normal(spitzerCalRawData[colname], spitzerCalRawData[colname]*spitzerCalRawData['fluxerr'], size=(n_resamp,len(spitzerCalRawData))).flatten()
@@ -421,13 +420,13 @@ if do_rfi_pca:
     # **PCA Pretrained Random Forest Approach**
     print('Performing PCA on RFI', end=" ")
     start = time()
-
-    pca = PCA()
+    
+    pca = PCA(whiten=True)
     pca_rfi_cal_feature_set = pca.fit_transform(rfi_cal_feature_set)
     print('took {} seconds'.format(time() - start))
-
+    
     print('Performing RFI with PCA Random Forest')
-
+    
     randForest_RFI_PCA = RandomForestRegressor( n_estimators=nTrees, 
                                                 criterion='mse', 
                                                 max_depth=None, 
