@@ -222,6 +222,9 @@ features_SSscaled, labels_SSscaled = setup_features(dataRaw       = spitzerCalRe
                                                     verbose       = False,
                                                     returnAll     = None)
 
+
+pca_cal_features_SSscaled = features_SSscaled
+
 nTrees = 1000
 
 if do_std:
