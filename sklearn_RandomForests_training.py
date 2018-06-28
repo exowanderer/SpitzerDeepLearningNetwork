@@ -13,7 +13,7 @@ import gc
 # from matplotlib import pyplot as plt
 from sklearn.model_selection  import train_test_split
 from sklearn.preprocessing    import StandardScaler, MinMaxScaler, minmax_scale
-from sklearn.ensemble         import RandomForestRegressor, ExtraTreesRegressor, AdaBoostRegressor
+from sklearn.ensemble         import RandomForestRegressor, ExtraTreesRegressor, AdaBoostRegressor, GradientBoostingRegressor
 from sklearn.decomposition    import PCA, FastICA
 from sklearn.externals        import joblib
 from sklearn.metrics          import r2_score
@@ -199,19 +199,26 @@ spitzerCalRawData['bmjd_err']       = np.median(0.5*np.diff(spitzerCalRawData['b
 spitzerCalRawData['np_err']         = np.sqrt(spitzerCalRawData['yerr'])
 
 n_PLD   = 9
-n_resamp= 10
+n_resamp= 1
 
 resampling_inputs = ['flux', 'xpos', 'ypos', 'xfwhm', 'yfwhm', 'bg_flux', 'bmjd', 'np'] + ['pix{}'.format(k) for k in range(1,10)]
 resampling_errors = ['fluxerr', 'xerr', 'yerr', 'xerr', 'yerr', 'sigma_bg_flux', 'bmjd_err', 'np_err'] + ['fluxerr']*n_PLD
 
 spitzerCalResampled = {}
-for colname, colerr in tqdm(zip(resampling_inputs, resampling_errors), total=len(resampling_inputs)):
-    if 'pix' in colname:
-        spitzerCalResampled[colname]  = np.random.normal(spitzerCalRawData[colname], spitzerCalRawData[colname]*spitzerCalRawData['fluxerr'], size=(n_resamp,len(spitzerCalRawData))).flatten()
-    else:
-        spitzerCalResampled[colname]  = np.random.normal(spitzerCalRawData[colname], spitzerCalRawData[colerr], size=(n_resamp,len(spitzerCalRawData))).flatten()
-
-spitzerCalResampled = pd.DataFrame(spitzerCalResampled)
+if n_resamp > 1:
+    print('Starting Resampling')
+    for colname, colerr in tqdm(zip(resampling_inputs, resampling_errors), total=len(resampling_inputs)):
+        if 'pix' in colname:
+            spitzerCalResampled[colname]  = np.random.normal(spitzerCalRawData[colname], spitzerCalRawData[colname]*spitzerCalRawData['fluxerr'], size=(n_resamp,len(spitzerCalRawData))).flatten()
+        else:
+            spitzerCalResampled[colname]  = np.random.normal(spitzerCalRawData[colname], spitzerCalRawData[colerr], size=(n_resamp,len(spitzerCalRawData))).flatten()
+    
+    spitzerCalResampled = pd.DataFrame(spitzerCalResampled)
+else:
+    print('No Resampling')
+    spitzerCalResampled = pd.DataFrame({colname:spitzerCalRawData[colname] for colname, colerr in tqdm(zip(resampling_inputs, resampling_errors), total=len(resampling_inputs))})
+    # for colname, colerr in tqdm(zip(resampling_inputs, resampling_errors), total=len(resampling_inputs)):
+    #     spitzerCalResampled[colname]  = spitzerCalRawData[colname]
 
 # spitzerCalResampled['flux']   = np.random.normal(spitzerCalRawData['flux']   , spitzerCalRawData['fluxerr']      , size=(n_resamp,len(spitzerCalRawData))).flatten()
 # spitzerCalResampled['xpos']   = np.random.normal(spitzerCalRawData['xpos']   , spitzerCalRawData['xerr']         , size=(n_resamp,len(spitzerCalRawData))).flatten()
@@ -291,7 +298,7 @@ if do_pca_rfr:
                                             verbose=True, 
                                             warm_start=True)
     
-    print(pca_cal_features_SSscaled.shape, labels_SSscaled.shape)
+    print('Feature Shape: {}\nLabel Shape: {}'.format(pca_cal_features_SSscaled.shape, labels_SSscaled.shape))
     
     start=time()
     randForest_PCA.fit(pca_cal_features_SSscaled, labels_SSscaled)
@@ -307,21 +314,21 @@ if do_pca_rfr:
     # del randForest_PCA, randForest_PCA_pred
     # _ = gc.collect()
 
-do_pca_gbr=False
+do_pca_gbr=True
 if do_pca_gbr:
-    print('Performing PCA Random Forest')
+    print('Performing Gradient Boosting Regression with PCA Random Forest and Quantile Loss')
     randForest_PCA_GBR = GradientBoostingRegressor(loss='quantile', 
                                                    learning_rate=0.1, 
                                                    n_estimators=nTrees, 
-                                                   n_jobs=-1,
-                                                   bootstrap=True,
-                                                   oob_score=True, 
+                                                   # n_jobs=-1,
+                                                   # bootstrap=True,
+                                                   # oob_score=True, 
                                                    subsample=1.0, 
                                                    criterion='friedman_mse', 
                                                    min_samples_split=2, 
                                                    min_samples_leaf=1, 
                                                    min_weight_fraction_leaf=0.0, 
-                                                   max_depth=None, 
+                                                   max_depth=3,#None, 
                                                    min_impurity_decrease=0.0, 
                                                    min_impurity_split=None, 
                                                    init=None, 
@@ -330,22 +337,22 @@ if do_pca_gbr:
                                                    alpha=0.9, 
                                                    verbose=True, 
                                                    max_leaf_nodes=None,
-                                                   warm_start=True)
-
+                                                   warm_start=True,
                                                    presort='auto')
     
     print(pca_cal_features_SSscaled.shape, labels_SSscaled.shape)
     
     start=time()
-    randForest_PCA.fit(pca_cal_features_SSscaled, labels_SSscaled)
+    randForest_PCA_GBR.fit(pca_cal_features_SSscaled, labels_SSscaled)
     
-    randForest_PCA_oob = randForest_PCA.oob_score_
-    randForest_PCA_pred= randForest_PCA.predict(pca_cal_features_SSscaled)
-    randForest_PCA_Rsq = r2_score(labels_SSscaled, randForest_PCA_pred)
+    randForest_PCA_GBR_oob = randForest_PCA_GBR.oob_score_
+    randForest_PCA_GBR_pred= randForest_PCA_GBR.predict(pca_cal_features_SSscaled)
+    randForest_PCA_GBR_Rsq = r2_score(labels_SSscaled, randForest_PCA_GBR_pred)
     
     print('PCA Pretrained Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(randForest_PCA_oob*100, randForest_PCA_Rsq*100, time()-start))
-    
-    joblib.dump(randForest_PCA, 'randForest_PCA_approach_{}trees_{}resamples.save'.format(nTrees, n_resamp))
+    ap = ArgumentParser()
+    ap.add_argument('-c', '--core', required=True, help="Which Core to Use GBR only Uses 1 Core at a time.")
+    joblib.dump(randForest_PCA_GBR, 'randForest_GBR_PCA_approach_{}trees_{}resamples.save'.format(nTrees, n_resamp))
     
     # del randForest_PCA, randForest_PCA_pred
     # _ = gc.collect()
