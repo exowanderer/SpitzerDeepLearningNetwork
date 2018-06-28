@@ -35,13 +35,11 @@ import pandas as pd
 
 from argparse import ArgumentParser
 ap = ArgumentParser()
-ap.add_argument('-ns'  , '--n_resamp', required=True , type=int , default=0    , help="Number of resamples to perform (GBR=1; No Resamp=0)")
-ap.add_argument('-nt'  , '--n_trees' , required=True , type=int , default=100  , help="Number of trees in the forest")
-ap.add_argument('--gbr', '--do_gbr'  , required=False, type=bool, default=False, help="Use Gradient Boosting Regression with PCA preprocessing")
-ap.add_argument('-c'   , '--core'    , required=False, type=int , default=0    , help="Which Core to Use GBR only Uses 1 Core at a time.")
-args = vars(ap.parse_args())
-print(args.keys())
-from sys import exit;exit(-1)
+ap.add_argument('-ns' , '--n_resamp', required=True , type=int , default=0    , help="Number of resamples to perform (GBR=1; No Resamp=0)")
+ap.add_argument('-nt' , '--n_trees' , required=True , type=int , default=100  , help="Number of trees in the forest")
+ap.add_argument('-gbr', '--do_gbr'  , required=False, type=bool, default=False, help="Use Gradient Boosting Regression with PCA preprocessing")
+ap.add_argument('-c'  , '--core'    , required=False, type=int , default=0    , help="Which Core to Use GBR only Uses 1 Core at a time.")
+
 def setup_features(dataRaw, label='flux', notFeatures=[], transformer=PCA(whiten=True), feature_scaler=StandardScaler(), 
                     label_scaler=None, verbose=False, returnAll=None):
     """Example function with types documented in the docstring.
