@@ -192,9 +192,9 @@ spitzerCalRawData['bg_flux']        = spitzerCalRawData['bg_flux']      / np.med
 spitzerCalRawData['sigma_bg_flux']  = spitzerCalRawData['sigma_bg_flux']/ np.median(spitzerCalRawData['flux'].values)
 spitzerCalRawData['flux']           = spitzerCalRawData['flux']         / np.median(spitzerCalRawData['flux'].values)
 
-spitzerCalResampled = {}
-
 bmjd_err= np.median(0.5*np.diff(spitzerCalRawData['bmjd']))
+
+spitzerCalResampled = {}
 
 n_resamp= 100
 
@@ -224,7 +224,7 @@ features_SSscaled, labels_SSscaled = setup_features(dataRaw       = spitzerCalRe
 
 pca_cal_features_SSscaled = features_SSscaled
 
-nTrees = 1000
+nTrees = 10
 
 if do_std:
     # **Standard Random Forest Approach**
