@@ -40,7 +40,8 @@ ap.add_argument('-nt'  , '--n_trees' , required=True , type=int , default=100  ,
 ap.add_argument('--gbr', '--do_gbr'  , required=False, type=bool, default=False, help="Use Gradient Boosting Regression with PCA preprocessing")
 ap.add_argument('-c'   , '--core'    , required=False, type=int , default=0    , help="Which Core to Use GBR only Uses 1 Core at a time.")
 args = vars(ap.parse_args())
-
+# print(args.keys())
+# from sys import exit;exit(-1)
 def setup_features(dataRaw, label='flux', notFeatures=[], transformer=PCA(whiten=True), feature_scaler=StandardScaler(), 
                     label_scaler=None, verbose=False, returnAll=None):
     """Example function with types documented in the docstring.
@@ -187,12 +188,6 @@ set_of_save_files  = ['./randForest_STD_approach.save',
 for k, sfile in enumerate(set_of_save_files):
     if sfile in files_in_directory:
         perform_rf_mode[k] = False
-
-# if len(argv) > 1:
-#     for k, arg in enumerate(argv):
-#         perform_rf_mode[k] = bool(arg)
-
-# do_std, do_pca, do_ica, do_rfi, do_rfi_pca, do_rfi_ica = perform_rf_mode
 
 # ## Load CSVs data
 spitzerCalNotFeatures = ['flux', 'fluxerr', 'dn_peak', 'xycov', 't_cernox', 'xerr', 'yerr', 'sigma_bg_flux']
