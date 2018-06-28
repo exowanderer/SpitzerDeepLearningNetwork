@@ -78,12 +78,12 @@ def setup_features(dataRaw, label='flux', notFeatures=[], transformer=PCA(whiten
         assert(not sum(abs(testPLD - np.array(PLDpixels))).all())
         print('Confirmed that PLD Pixels have been Normalized to Spec')
     
+    labels          = inputData[label].values
     feature_columns = inputData.drop(notFeatures,axis=1).columns.values
     features        = inputData.drop(notFeatures,axis=1).values
-    labels          = inputData[label].values
-    print(features.shape)
-    # **PCA Preconditioned Random Forest Approach**
-    if verbose: print('Performing PCA', end=" ")
+    
+    print('Shape of Features Array is', features.shape)
+    
     if verbose: start = time()
     
     labels_scaled     = label_scaler.fit_transform(labels[:,None]).ravel() if label_scaler   is not None else labels
@@ -195,25 +195,37 @@ spitzerCalRawData['bg_flux']        = spitzerCalRawData['bg_flux']      / np.med
 spitzerCalRawData['sigma_bg_flux']  = spitzerCalRawData['sigma_bg_flux']/ np.median(spitzerCalRawData['flux'].values)
 spitzerCalRawData['flux']           = spitzerCalRawData['flux']         / np.median(spitzerCalRawData['flux'].values)
 
-bmjd_err= np.median(0.5*np.diff(spitzerCalRawData['bmjd']))
+spitzerCalRawData['bmjd_err']       = np.median(0.5*np.diff(spitzerCalRawData['bmjd']))
+spitzerCalRawData['np_err']         = np.sqrt(spitzerCalRawData['yerr'])
 
-spitzerCalResampled = {}
-
+n_PLD   = 9
 n_resamp= 100
 
-spitzerCalResampled['flux']   = np.random.normal(spitzerCalRawData['flux']   , spitzerCalRawData['fluxerr']      , size=(n_resamp,len(spitzerCalRawData))).flatten()
-spitzerCalResampled['xpos']   = np.random.normal(spitzerCalRawData['xpos']   , spitzerCalRawData['xerr']         , size=(n_resamp,len(spitzerCalRawData))).flatten()
-spitzerCalResampled['ypos']   = np.random.normal(spitzerCalRawData['ypos']   , spitzerCalRawData['yerr']         , size=(n_resamp,len(spitzerCalRawData))).flatten()
-spitzerCalResampled['xfwhm']  = np.random.normal(spitzerCalRawData['xfwhm']  , spitzerCalRawData['xerr']         , size=(n_resamp,len(spitzerCalRawData))).flatten()
-spitzerCalResampled['yfwhm']  = np.random.normal(spitzerCalRawData['yfwhm']  , spitzerCalRawData['yerr']         , size=(n_resamp,len(spitzerCalRawData))).flatten()
-spitzerCalResampled['bg_flux']= np.random.normal(spitzerCalRawData['bg_flux'], spitzerCalRawData['sigma_bg_flux'], size=(n_resamp,len(spitzerCalRawData))).flatten()
-spitzerCalResampled['bmjd']   = np.random.normal(spitzerCalRawData['bmjd']   , bmjd_err                          , size=(n_resamp,len(spitzerCalRawData))).flatten()
-spitzerCalResampled['np']     = np.random.normal(spitzerCalRawData['np']     , np.sqrt(spitzerCalRawData['yerr']), size=(n_resamp,len(spitzerCalRawData))).flatten()
+resampling_inputs = ['flux', 'xpos', 'ypos', 'xfwhm', 'yfwhm', 'bg_flux', 'bmjd', 'np'] + ['pix{}'.format(k) for k in range(1,10)]
+resampling_errors = ['fluxerr', 'xerr', 'yerr', 'xerr', 'yerr', 'sigma_bg_flux', 'bmjd_err', 'np_err'] + ['fluxerr']*n_PLD
 
-for colname in tqdm(['pix{}'.format(k) for k in range(1,10)]):
-    spitzerCalResampled[colname]  = np.random.normal(spitzerCalRawData[colname], spitzerCalRawData[colname]*spitzerCalRawData['fluxerr'], size=(n_resamp,len(spitzerCalRawData))).flatten()
+spitzerCalResampled = {}
+for colname, colerr in tqdm(zip(resampling_inputs, resampling_errors), total=len(resampling_inputs)):
+    if 'pix' in colname:
+        spitzerCalResampled[colname]  = np.random.normal(spitzerCalRawData[colname], spitzerCalRawData[colname]*spitzerCalRawData['fluxerr'], size=(n_resamp,len(spitzerCalRawData))).flatten()
+    else:
+        spitzerCalResampled[colname]  = np.random.normal(spitzerCalRawData[colname], spitzerCalRawData[colerr], size=(n_resamp,len(spitzerCalRawData))).flatten()
 
 spitzerCalResampled = pd.DataFrame(spitzerCalResampled)
+
+# spitzerCalResampled['flux']   = np.random.normal(spitzerCalRawData['flux']   , spitzerCalRawData['fluxerr']      , size=(n_resamp,len(spitzerCalRawData))).flatten()
+# spitzerCalResampled['xpos']   = np.random.normal(spitzerCalRawData['xpos']   , spitzerCalRawData['xerr']         , size=(n_resamp,len(spitzerCalRawData))).flatten()
+# spitzerCalResampled['ypos']   = np.random.normal(spitzerCalRawData['ypos']   , spitzerCalRawData['yerr']         , size=(n_resamp,len(spitzerCalRawData))).flatten()
+# spitzerCalResampled['xfwhm']  = np.random.normal(spitzerCalRawData['xfwhm']  , spitzerCalRawData['xerr']         , size=(n_resamp,len(spitzerCalRawData))).flatten()
+# spitzerCalResampled['yfwhm']  = np.random.normal(spitzerCalRawData['yfwhm']  , spitzerCalRawData['yerr']         , size=(n_resamp,len(spitzerCalRawData))).flatten()
+# spitzerCalResampled['bg_flux']= np.random.normal(spitzerCalRawData['bg_flux'], spitzerCalRawData['sigma_bg_flux'], size=(n_resamp,len(spitzerCalRawData))).flatten()
+# spitzerCalResampled['bmjd']   = np.random.normal(spitzerCalRawData['bmjd']   , spitzerCalRawData['bmjd_err']    , size=(n_resamp,len(spitzerCalRawData))).flatten()
+# spitzerCalResampled['np']     = np.random.normal(spitzerCalRawData['np']     , spitzerCalRawData['np_err']       , size=(n_resamp,len(spitzerCalRawData))).flatten()
+
+# for colname in tqdm(['pix{}'.format(k) for k in range(1,10)]):
+#     spitzerCalResampled[colname]  = np.random.normal(spitzerCalRawData[colname], spitzerCalRawData[colname]*spitzerCalRawData['fluxerr'], size=(n_resamp,len(spitzerCalRawData))).flatten()
+
+# spitzerCalResampled = pd.DataFrame(spitzerCalResampled)
 
 # features_SSscaled, labels_SSscaled = setup_features(dataRaw       = spitzerCalResampled,
 features_SSscaled, labels_SSscaled = setup_features(dataRaw       = spitzerCalResampled,
@@ -227,44 +239,7 @@ features_SSscaled, labels_SSscaled = setup_features(dataRaw       = spitzerCalRe
 
 pca_cal_features_SSscaled = features_SSscaled
 
-nTrees = 100
-
-if do_std:
-    # **Standard Random Forest Approach**
-    # for nComps in range(1,spitzerData.shape[1]):
-    print('Performing STD Random Forest')
-    randForest_STD = RandomForestRegressor( n_estimators=nTrees, \
-                                            n_jobs=-1, \
-                                            criterion='mse', \
-                                            max_depth=None, \
-                                            min_samples_split=2, \
-                                            min_samples_leaf=1, \
-                                            min_weight_fraction_leaf=0.0, \
-                                            max_features='auto', \
-                                            max_leaf_nodes=None, \
-                                            bootstrap=True, \
-                                            oob_score=True, \
-                                            random_state=42, \
-                                            verbose=True, \
-                                            warm_start=True)
-
-    start=time()
-    randForest_STD.fit(features_SSscaled, labels_SSscaled)
-
-    # Save for Later
-    importances = randForest_STD.feature_importances_
-    np.savetxt('randForest_STD_feature_importances.txt', importances)
-    
-    randForest_STD_oob = randForest_STD.oob_score_
-    randForest_STD_pred= randForest_STD.predict(features_SSscaled)
-    randForest_STD_Rsq = r2_score(labels_SSscaled, randForest_STD_pred)
-
-    print('Standard Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(randForest_STD_oob*100, randForest_STD_Rsq*100, time()-start))
-
-    joblib.dump(randForest_STD, 'randForest_STD_approach_{}trees_{}resamples.save'.format(nTrees, n_resamp))
-    del randForest_STD, randForest_STD_pred
-    _ = gc.collect()
-
+nTrees = 1000
 
 start = time()
 print('Grabbing PCA', end=" ")
@@ -332,6 +307,44 @@ if do_pca:
     
     del randForest_PCA, randForest_PCA_pred
     _ = gc.collect()
+
+if do_std:
+    # **Standard Random Forest Approach**
+    # for nComps in range(1,spitzerData.shape[1]):
+    print('Performing STD Random Forest')
+    randForest_STD = RandomForestRegressor( n_estimators=nTrees, \
+                                            n_jobs=-1, \
+                                            criterion='mse', \
+                                            max_depth=None, \
+                                            min_samples_split=2, \
+                                            min_samples_leaf=1, \
+                                            min_weight_fraction_leaf=0.0, \
+                                            max_features='auto', \
+                                            max_leaf_nodes=None, \
+                                            bootstrap=True, \
+                                            oob_score=True, \
+                                            random_state=42, \
+                                            verbose=True, \
+                                            warm_start=True)
+
+    start=time()
+    randForest_STD.fit(features_SSscaled, labels_SSscaled)
+
+    # Save for Later
+    importances = randForest_STD.feature_importances_
+    np.savetxt('randForest_STD_feature_importances.txt', importances)
+    
+    randForest_STD_oob = randForest_STD.oob_score_
+    randForest_STD_pred= randForest_STD.predict(features_SSscaled)
+    randForest_STD_Rsq = r2_score(labels_SSscaled, randForest_STD_pred)
+
+    print('Standard Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(randForest_STD_oob*100, randForest_STD_Rsq*100, time()-start))
+
+    joblib.dump(randForest_STD, 'randForest_STD_approach_{}trees_{}resamples.save'.format(nTrees, n_resamp))
+    del randForest_STD, randForest_STD_pred
+    _ = gc.collect()
+
+
 
 if do_ica:
     # for nComps in range(1,spitzerData.shape[1]):
