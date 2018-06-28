@@ -40,8 +40,8 @@ ap.add_argument('-nt'  , '--n_trees' , required=True , type=int , default=100  ,
 ap.add_argument('--gbr', '--do_gbr'  , required=False, type=bool, default=False, help="Use Gradient Boosting Regression with PCA preprocessing")
 ap.add_argument('-c'   , '--core'    , required=False, type=int , default=0    , help="Which Core to Use GBR only Uses 1 Core at a time.")
 args = vars(ap.parse_args())
-# print(args.keys())
-# from sys import exit;exit(-1)
+print(args.keys())
+from sys import exit;exit(-1)
 def setup_features(dataRaw, label='flux', notFeatures=[], transformer=PCA(whiten=True), feature_scaler=StandardScaler(), 
                     label_scaler=None, verbose=False, returnAll=None):
     """Example function with types documented in the docstring.
