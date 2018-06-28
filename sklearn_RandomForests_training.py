@@ -199,7 +199,7 @@ spitzerCalRawData['bmjd_err']       = np.median(0.5*np.diff(spitzerCalRawData['b
 spitzerCalRawData['np_err']         = np.sqrt(spitzerCalRawData['yerr'])
 
 n_PLD   = 9
-n_resamp= 100
+n_resamp= 10
 
 resampling_inputs = ['flux', 'xpos', 'ypos', 'xfwhm', 'yfwhm', 'bg_flux', 'bmjd', 'np'] + ['pix{}'.format(k) for k in range(1,10)]
 resampling_errors = ['fluxerr', 'xerr', 'yerr', 'xerr', 'yerr', 'sigma_bg_flux', 'bmjd_err', 'np_err'] + ['fluxerr']*n_PLD
@@ -245,7 +245,7 @@ start = time()
 print('Grabbing PCA', end=" ")
 pca_cal_features_SSscaled, labels_SSscaled, spitzerCalRawData, \
     pca_trnsfrmr, label_sclr, feature_sclr = setup_features(dataRaw       = spitzerCalResampled, 
-                                                            notFeatures   = spitzerCalNotFeatures, 
+                                                            notFeatures   = [],#spitzerCalNotFeatures, 
                                                             transformer   = None, 
                                                             feature_scaler= StandardScaler(),
                                                             label_scaler  = None,
