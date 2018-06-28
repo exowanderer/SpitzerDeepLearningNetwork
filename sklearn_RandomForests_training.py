@@ -10,7 +10,7 @@ warnings.filterwarnings("ignore")
 
 import gc
 
-from argparse import ArgumentParse
+from argparse import ArgumentParser
 # from matplotlib import pyplot as plt
 from sklearn.model_selection  import train_test_split
 from sklearn.preprocessing    import StandardScaler, MinMaxScaler, minmax_scale
