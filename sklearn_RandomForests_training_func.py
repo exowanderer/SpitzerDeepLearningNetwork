@@ -75,7 +75,7 @@ from glob                     import glob
 from time import time
 start0 = time()
 
-def setup_features(dataRaw, label='flux', notFeatures=[], pipeline=None, verbose=False, returnAll=None):
+def setup_features(dataRaw, label='flux', notFeatures=[], pipeline=None, verbose=False, resample=False, returnAll=None):
     
     """Example function with types documented in the docstring.
 
@@ -266,11 +266,6 @@ if do_ica:
 
 pipe  = Pipeline(operations)
 
-# features, spitzerCalRawData, pipe_fitted  = setup_features( dataRaw       = spitzerCalResampled,
-#                                                             pipeline      = pipe,
-#                                                             verbose       = verbose,
-#                                                             returnAll     = True)
-
 if do_rfi: 
     importance_filename = 'randForest_STD_feature_importances.txt'
     
@@ -303,11 +298,11 @@ else:
 
 if n_resamp == 0:
     print('No Resampling')
-    spitzerCalResampled = pd.DataFrame({colname:spitzerCalRawData[colname] for colname, colerr in tqdm(zip(resampling_inputs, resampling_errors), total=len(resampling_inputs))})
     
-    features, labels, pipe_fitted = setup_features( dataRaw       = spitzerCalResampled, 
+    features, labels, pipe_fitted = setup_features( dataRaw       = spitzerCalRawData, 
                                                     pipeline      = pipe, 
                                                     verbose       = verbose,
+                                                    resample      = False,
                                                     returnAll     = True)
     
     features = features.T[indices][:nImportantSamples].T if do_rfi else features
@@ -325,11 +320,11 @@ if n_resamp == 0:
 for k_samp in range(n_resamp):
     if k_samp == 0: print('Starting Resampling')
     
-    features, labels, spitzerCalRawData, pipe_fitted  = setup_features( dataRaw       = spitzerCalResampled, 
-                                                                        pipeline      = pipe, 
-                                                                        verbose       = verbose,
-                                                                        resample      = True:
-                                                                        returnAll     = True)
+    features, labels, pipe_fitted = setup_features( dataRaw       = spitzerCalRawData, 
+                                                    pipeline      = pipe   ,
+                                                    verbose       = verbose,
+                                                    resample      = True   ,
+                                                    returnAll     = True   )
     
     features = features.T[indices][:nImportantSamples].T if do_rfi else features
     
