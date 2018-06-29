@@ -1,14 +1,15 @@
 from argparse import ArgumentParser
 ap = ArgumentParser()
-ap.add_argument('-ns' , '--n_resamp', required=True , type=int , default=0    , help="Number of resamples to perform (GBR=1; No Resamp=0)")
-ap.add_argument('-nt' , '--n_trees' , required=True , type=int , default=100  , help="Number of trees in the forest")
-ap.add_argument('-c'  , '--core'    , required=False, type=int , default=0    , help="Which Core to Use GBR only Uses 1 Core at a time.")
-ap.add_argument('-std', '--do_std'  , required=False, type=bool, default=False, help="Use Standard Random Forest Regression")
-ap.add_argument('-pca', '--do_pca'  , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with PCA preprocessing")
-ap.add_argument('-ica', '--do_ica'  , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with ICA preprocessing")
-ap.add_argument('-rfi', '--do_rfi'  , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with PCA preprocessing")
-ap.add_argument('-gbr', '--do_gbr'  , required=False, type=bool, default=False, help="Use Gradient Boosting Regression with PCA preprocessing")
-ap.add_argument('-pdb', '--pdb_stop'  , required=False, type=bool, default=False, help="Stop the trace at the end with pdb.set_trace()")
+ap.add_argument('-ns' , '--n_resamp'    , required=False, type=int , default=1    , help="Number of resamples to perform (GBR=1; No Resamp=0)")
+ap.add_argument('-nt' , '--n_trees'     , required=False, type=int , default=100  , help="Number of trees in the forest")
+ap.add_argument('-c'  , '--core'        , required=False, type=int , default=0    , help="Which Core to Use GBR only Uses 1 Core at a time.")
+ap.add_argument('-std', '--do_std'      , required=False, type=bool, default=False, help="Use Standard Random Forest Regression")
+ap.add_argument('-pca', '--do_pca'      , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with PCA preprocessing")
+ap.add_argument('-ica', '--do_ica'      , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with ICA preprocessing")
+ap.add_argument('-rfi', '--do_rfi'      , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with PCA preprocessing")
+ap.add_argument('-gbr', '--do_gbr'      , required=False, type=bool, default=False, help="Use Gradient Boosting Regression with PCA preprocessing")
+ap.add_argument('-rs' , '--random_state', required=False, type=bool, default=False, help="Use Gradient Boosting Regression with PCA preprocessing")
+ap.add_argument('-pdb', '--pdb_stop'    , required=False, type=bool, default=False, help="Stop the trace at the end with pdb.set_trace()")
 args = vars(ap.parse_args())
 
 do_std  = args['do_std']
@@ -577,18 +578,19 @@ if do_rfi_ica:
 
     start=time()
     randForest_RFI_ICA.fit(ica_rfi_cal_feature_set, labels_SSscaled)
-
+    
     randForest_RFI_ICA_oob = randForest_RFI_ICA.oob_score_
     randForest_RFI_ICA_pred= randForest_RFI_ICA.predict(ica_rfi_cal_feature_set)
     randForest_RFI_ICA_Rsq = r2_score(labels_SSscaled, randForest_RFI_ICA_pred)
-
+    
     print('RFI Pretrained with ICA Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(
         randForest_RFI_ICA_oob*100, randForest_RFI_ICA_Rsq*100, time()-start))
-
+    
     joblib.dump(randForest_RFI_ICA, 'randForest_RFI_ICA_approach_{}trees_{}resamp.save'.format(nTrees, n_resamp))
     
     if need_gc:
         del randForest_RFI_ICA, randForest_RFI_ICA_oob, randForest_RFI_ICA_pred, randForest_RFI_ICA_Rsq
         gc.collect();
 
+print('\n\nFull Operation took {} minutes'.format((time() - start0)//60))
 if pdb_stop: pdb.set_trace()
