@@ -198,7 +198,8 @@ def random_forest_wrapper(features, labels, n_trees, n_jobs, grad_boost=False, h
     if verbose: print('Feature Shape: {}\nLabel Shape: {}'.format(features.shape, labels.shape))
     
     if verbose: start=time()
-    rgr.fit(pca_cal_features_SSscaled, labels_SSscaled)
+    
+    rgr.fit(features, labels)
     
     rgr_oob = r2_score(testY, randForest.predict(testX)) if grad_boost else randForest.oob_score_ 
     rgr_Rsq = r2_score(labels_, randForest.predict(features_))
