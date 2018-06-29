@@ -52,6 +52,13 @@ except Exception as e:
     sp_fname    = ''
     verbose     = True
 
+if do_gbr and n_resamp in [0,1]:
+    print("WARNING: Gradient Boosting can only use 1 core.")
+    print('\tInstead of resampling inside the function; call this package `n_resamp` times')
+    print('\t in `n_resamp` screens or terminals.')
+    print('\n**Forcing** `n_resamp = 1`')
+    n_resamp = 1
+
 import pandas as pd
 import numpy as np
 

@@ -319,7 +319,7 @@ if do_pca:
                                             max_leaf_nodes=None, 
                                             bootstrap=True, 
                                             oob_score=True, 
-                                            random_state=42, 
+                                            # random_state=random_state, 
                                             verbose=True, 
                                             warm_start=True)
     
@@ -360,7 +360,7 @@ if do_gbr:
                                                    min_impurity_decrease=0.0, 
                                                    min_impurity_split=None, 
                                                    init=None, 
-                                                   random_state=42, 
+                                                   # random_state=42, 
                                                    max_features='auto', 
                                                    alpha=0.9, 
                                                    verbose=True, 
@@ -402,7 +402,7 @@ if do_std:
                                             max_leaf_nodes=None, \
                                             bootstrap=True, \
                                             oob_score=True, \
-                                            random_state=42, \
+                                            # random_state=42, \
                                             verbose=True, \
                                             warm_start=True)
 
@@ -451,7 +451,7 @@ if do_ica:
                                             bootstrap=True, 
                                             oob_score=True, 
                                             n_jobs=n_jobs, 
-                                            random_state=42, 
+                                            # random_state=42, 
                                             verbose=True, 
                                             warm_start=True)
     
@@ -496,7 +496,7 @@ if do_rfi:
                                             max_leaf_nodes=None, \
                                             bootstrap=True, \
                                             oob_score=True, \
-                                            random_state=42, \
+                                            # random_state=42, \
                                             verbose=True, \
                                             warm_start=True)
     
@@ -538,7 +538,7 @@ if do_rfi_pca:
                                                 bootstrap=True,
                                                 oob_score=True, 
                                                 n_jobs=n_jobs, 
-                                                random_state=42, 
+                                                # random_state=42, 
                                                 verbose=True, 
                                                 warm_start=True)
 
@@ -581,7 +581,7 @@ if do_rfi_ica:
                                                 bootstrap=True, 
                                                 oob_score=True, 
                                                 n_jobs=n_jobs, 
-                                                random_state=42, 
+                                                # random_state=42, 
                                                 verbose=True, 
                                                 warm_start=True)
 
