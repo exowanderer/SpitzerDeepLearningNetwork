@@ -40,16 +40,12 @@ except Exception as e:
 
 import pandas as pd
 import numpy as np
-# import tensorflow as tf
-# tf.logging.set_verbosity(tf.logging.ERROR)
 
 import pdb
 
 import warnings
 warnings.filterwarnings("ignore")
 
-# import gc
-# from matplotlib import pyplot as plt
 from sklearn.model_selection  import train_test_split
 from sklearn.preprocessing    import StandardScaler, MinMaxScaler, minmax_scale
 from sklearn.ensemble         import RandomForestRegressor, ExtraTreesRegressor, AdaBoostRegressor, GradientBoostingRegressor
@@ -60,10 +56,6 @@ from sklearn.metrics          import r2_score
 from tqdm import tqdm
 
 from glob                     import glob
-
-# plt.rcParams['figure.dpi'] = 300
-
-# from corner import corner
 
 from time import time
 start0 = time()
@@ -88,20 +80,10 @@ def setup_features(dataRaw, label='flux', notFeatures=[], transformer=PCA(whiten
             https://github.com/ExoWanderer/
 
     """
-    # notFeatures = list(notFeatures)
-    # notFeatures.append(label) if label not in notFeatures else None
-    
     dataRaw   = pd.read_csv(filename) if isinstance(dataRaw,str) else dataRaw
     inputData = dataRaw.copy()
     
     PLDpixels = pd.DataFrame({key:dataRaw[key] for key in dataRaw.columns if 'pix' in key})
-    print(''.format(PLDpixels.shape, PLDpixels.columns))
-    # PLDpixels     = {}
-    # for key in dataRaw.columns.values:
-    #     if 'pix' in key:
-    #         PLDpixels[key] = dataRaw[key]
-    # 
-    # PLDpixels     = pd.DataFrame(PLDpixels)
     
     PLDnorm       = np.sum(np.array(PLDpixels),axis=1)
     PLDpixels     = (PLDpixels.T / PLDnorm).T
@@ -111,12 +93,11 @@ def setup_features(dataRaw, label='flux', notFeatures=[], transformer=PCA(whiten
         if key in PLDpixels.columns:
             inputData[key] = PLDpixels[key]
     
-    # testPLD = np.array(pd.DataFrame({key:inputData[key] for key in inputData.columns.values if 'pix' in key})) if verbose else None
-    # assert(not sum(abs(testPLD - np.array(PLDpixels))).all())  if verbose else None
-    # print('Confirmed that PLD Pixels have been Normalized to Spec') if verbose else None
-    
+    # Assign the labels
     labels          = inputData[label].values
-    inputData       = inputData.drop(label, axis=1) # remove
+    
+    # explicitly remove the label
+    inputData.drop(label, axis=1, inplace=True)
     
     feature_columns = inputData.drop(notFeatures,axis=1).columns.values
     features        = inputData.drop(notFeatures,axis=1).values
@@ -129,7 +110,7 @@ def setup_features(dataRaw, label='flux', notFeatures=[], transformer=PCA(whiten
     features_scaled   = feature_scaler.fit_transform(features)             if feature_scaler is not None else features
     features_trnsfrmd = transformer.fit_transform(features_scaled)         if transformer    is not None else features_scaled
     
-    print('took {} seconds'.format(time() - start)) if verbose else None
+    if verbose: print('took {} seconds'.format(time() - start))
     
     if returnAll == True:
         return features_trnsfrmd, labels_scaled, dataRaw, transformer, label_scaler, feature_scaler
@@ -145,88 +126,49 @@ def setup_features(dataRaw, label='flux', notFeatures=[], transformer=PCA(whiten
     
     return features_trnsfrmd, labels_scaled
 
-def random_forest_wrapper(features, labels, n_trees, n_jobs, header='PCA', core_num=0, samp_num=0, return=False):
+def random_forest_wrapper(features, labels, n_trees, n_jobs, grad_boost=False, header='PCA', 
+                            core_num=0, samp_num=0, loss='quantile', learning_rate=0.1, 
+                            subsample=1.0, full_output=False):
+    
     print('Performing {} Random Forest'.format(header))
-    randForest  = RandomForestRegressor( n_estimators=n_trees, 
-                                            n_jobs=n_jobs, 
-                                            criterion='mse', 
-                                            max_depth=None, 
-                                            min_samples_split=2, 
-                                            min_samples_leaf=1, 
-                                            min_weight_fraction_leaf=0.0, 
-                                            max_features='auto', 
-                                            max_leaf_nodes=None, 
-                                            bootstrap=True, 
-                                            oob_score=True, 
-                                            random_state=42, 
-                                            verbose=True, 
-                                            warm_start=True)
+    
+    features_ = features.copy()
+    labels_   = labels.copy()
+    
+    if grad_boost:
+        rgr = GradientBoostingRegressor(n_estimators  = n_trees      , 
+                                        loss          = loss         , 
+                                        learning_rate = learning_rate, 
+                                        subsample     = subsample    , 
+                                        warm_start    = True         ,
+                                        verbose       = True         )
+        
+        features, testX, labels, testY  = train_test_split(features_, labels_, test_size=0.25)
+    else: 
+        rgr = RandomForestRegressor(    n_estimators  = n_trees      ,
+                                        n_jobs        = n_jobs       ,
+                                        oob_score     = True         ,
+                                        warm_start    = True         ,
+                                        verbose       = True         )
     
     print('Feature Shape: {}\nLabel Shape: {}'.format(features.shape, labels.shape))
     
     start=time()
-    randForest.fit(pca_cal_features_SSscaled, labels_SSscaled)
+    rgr.fit(pca_cal_features_SSscaled, labels_SSscaled)
     
-    randForest_oob = randForest.oob_score_
-    randForest_pred= randForest.predict(features)
-    randForest_Rsq = r2_score(labels, randForest)
+    rgr_oob = r2_score(testY, randForest.predict(testX)) if grad_boost else randForest.oob_score_ 
+    rgr_Rsq = r2_score(labels_, randForest.predict(features_))
     
-    print('{} Pretrained Random Forest:\n\tOOB Score: \
-                  {:.3f}%\n\tR^2 score: {:.3f}%\
-                  \n\tRuntime:   {:.3f} seconds'.format(
-                  header, randForest_oob*100, randForest_Rsq*100, time()-start))
+    test_label = {True:'Test R^2', False:'OOB'}
     
-    joblib.dump(randForest, 'randForest_{}_approach_{}trees_{}resamp.save'.format(header, n_trees, samp_num))
+    print('{} Pretrained Random Forest:\n\t{} Score: \
+                  {:.3f}%\n\tTrain R^2 score: {:.3f}%\
+                  \n\tRuntime:   {:.3f} seconds'.format(header, test_label[grad_boost], 
+                                                          randForest_oob*100, randForest_Rsq*100, time()-start))
     
-    return randForest
-
-def gradient_boosting_wrapper(features, labels, n_trees, n_jobs, header='PCA', 
-                                loss='quantile', learning_rate=0.1, subsample=1.0, 
-                                return=False):
+    joblib.dump(randForest, 'randForest_{}_approach_{}trees_{}resamp_{}core.save'.format(header, n_trees, samp_num, core_num))
     
-    trainX, testX, trainY, testY = train_test_split(features, labels, test_size=0.25)
-    
-    print('Performing Gradient Boosting Regression with PCA Random Forest and Quantile Loss')
-    randforest = GradientBoostingRegressor(loss=loss, 
-                                                   learning_rate=learning_rate, 
-                                                   n_estimators=n_trees, 
-                                                   subsample=subsample, 
-                                                   criterion='friedman_mse', 
-                                                   min_samples_split=2, 
-                                                   min_samples_leaf=1, 
-                                                   min_weight_fraction_leaf=0.0, 
-                                                   max_depth=3,#None, 
-                                                   min_impurity_decrease=0.0, 
-                                                   min_impurity_split=None, 
-                                                   init=None, 
-                                                   random_state=42, 
-                                                   max_features='auto', 
-                                                   alpha=0.9, 
-                                                   verbose=True, 
-                                                   max_leaf_nodes=None,
-                                                   warm_start=True,
-                                                   presort='auto')
-    
-    print(features.shape, labels.shape)
-    
-    start=time()
-    randforest.fit(trainX, trainY)
-    
-    randForest_pred_train = randforest.predict(trainX)
-    randForest_pred_test  = randforest.predict(testX)
-    randForest_Rsq_train  = r2_score(trainY, randForest_pred_train)
-    randForest_Rsq_test   = r2_score(testY , randForest_pred_test )
-    
-    print('PCA Pretrained Random Forest:\n\tTrain R^2 Score: {:.3f}%\n\tTest R^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(
-                    randForest_Rsq_train*100, randForest_Rsq_test*100, time()-start))
-    
-    joblib.dump(randforest, 'randForest_GBR_PCA_approach_{}trees_{}resamp_{}core.save'.format(n_trees, samp_num, core_num))
-    
-    if full_output: 
-        return randforest
-    else: 
-        del randforest, randForest_pred_train, randForest_pred_test
-        # gc.collect();
+    if full_output: return randForest
 
 if n_jobs == 1: print('WARNING: You are only using 1 core!')
 
