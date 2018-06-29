@@ -280,13 +280,13 @@ if save_calibration_stacks:
     #   - See `predict_with_scaled_transformer`
     
     # Need to Scale the Labels based off of the calibration distribution
-    joblib.dump(label_sclr  , 'spitzerCalLabelScaler_fit.save')
+    joblib.dump(label_sclr  , label_sclr_save_name)
     
     # Need to Scale the Features based off of the calibration distribution
-    joblib.dump(feature_sclr, 'spitzerCalFeatureScaler_fit.save')
+    joblib.dump(feature_sclr, feature_sclr_save_name)
     
     # Need to Transform the Scaled Features based off of the calibration distribution
-    joblib.dump(pca_trnsfrmr, 'spitzerCalFeaturePCA_trnsfrmr.save')
+    joblib.dump(pca_trnsfrmr, pca_trnsfrmr_save_name)
 
 if do_pca:
     print('Performing PCA Random Forest')
