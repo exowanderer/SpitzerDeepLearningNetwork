@@ -27,9 +27,6 @@ if n_jobs == 1: print('WARNING: You are only using 1 core!')
 #   if so
 need_gc = sum([args[key] for key in args.keys() if 'do_' in key]) > 1
 
-importance_filename = 'randForest_STD_feature_importances.txt'
-if do_rfi and not len(glob(importance_filename)): do_std = True
-
 import pandas as pd
 import numpy as np
 # import tensorflow as tf
@@ -196,20 +193,6 @@ def predict_with_scaled_transformer(dataRaw, notFeatures=None, transformer=None,
 
 files_in_directory = glob('./*')
 
-# nRF_modes       = 6
-# perform_rf_mode = np.ones(nRF_modes, dtype=bool)
-#
-# set_of_save_files  = ['./randForest_STD_approach.save',
-#                       './randForest_PCA_approach.save',
-#                       './randForest_ICA_approach.save',
-#                       './randForest_RFI_approach.save',
-#                       './randForest_RFI_PCA_approach.save',
-#                       './randForest_RFI_ICA_approach.save']
-#
-# for k, sfile in enumerate(set_of_save_files):
-#     if sfile in files_in_directory:
-#         perform_rf_mode[k] = False
-
 # ## Load CSVs data
 spitzerCalNotFeatures = ['flux', 'fluxerr', 'dn_peak', 'xycov', 't_cernox', 'xerr', 'yerr', 'sigma_bg_flux']
 spitzerCalFilename    ='pmap_ch2_0p1s_x4_rmulti_s3_7.csv'
@@ -256,19 +239,56 @@ pca_cal_features_SSscaled = features_SSscaled
 
 nTrees = args['n_trees']
 
+if do_pca: transformer   = PCA(whiten=True)
+if do_ica: transformer   = FastICA()
+
+feature_scaler  = StandardScaler() if do_pp else None
+
+
 start = time()
 print('Grabbing PCA', end=" ")
 pca_cal_features_SSscaled, labels_SSscaled, spitzerCalRawData, \
     pca_trnsfrmr, label_sclr, feature_sclr = setup_features(dataRaw       = spitzerCalResampled, 
                                                             notFeatures   = [],#spitzerCalNotFeatures, 
-                                                            transformer   = None, 
-                                                            feature_scaler= StandardScaler(),
-                                                            label_scaler  = None,
-                                                            verbose       = True,
+                                                            transformer   = transformer, 
+                                                            feature_scaler= feature_scaler,
+                                                            label_scaler  = label_scaler,
+                                                            verbose       = verbose,
                                                             returnAll     = True)
 
-print(len(pca_cal_features_SSscaled))
 print('took {} seconds'.format(time() - start))
+
+if do_ica:
+    # for nComps in range(1,spitzerData.shape[1]):
+    print('Performing ICA Random Forest')
+    
+    start = time()
+    print('Performing ICA', end=" ")
+    ica_cal_feature_set  = setup_features(dataRaw       = spitzerCalResampled, 
+                                          notFeatures   = spitzerCalNotFeatures, 
+                                          transformer   = FastICA(), 
+                                          feature_scaler= StandardScaler(),
+                                          label_scaler  = None,
+                                          verbose       = True, 
+                                          returnAll     = 'features')
+    
+    print('took {} seconds'.format(time() - start))
+
+if do_rfi: 
+    importance_filename = 'randForest_STD_feature_importances.txt'
+    if len(glob(importance_filename)): 
+        random_forest_wrapper(features, labels, nTrees, n_jobs, header='PCA', 
+                                core_num=0, samp_num=0, return=False)
+    
+    print('Computing Importances for RFI Random Forest')
+    importances = np.loadtxt(importance_filename)
+    indices     = np.argsort(importances)[::-1]
+    
+    cumsum = np.cumsum(importances[indices])
+    nImportantSamples = np.argmax(cumsum >= 0.95) + 1
+    
+    # **Random Forest Pretrained Random Forest Approach**
+    rfi_cal_feature_set = features_SSscaled.T[indices][:nImportantSamples].T
 
 if 'core' in args.keys():
     core = args['core']
@@ -306,7 +326,7 @@ if save_calibration_stacks:
     # Need to Transform the Scaled Features based off of the calibration distribution
     joblib.dump(pca_trnsfrmr, pca_trnsfrmr_save_name)
 
-def random_forest_wrapper(features, labels, nTrees, n_jobs, header='PCA', return=False):
+def random_forest_wrapper(features, labels, nTrees, n_jobs, header='PCA', core_num=0, samp_num=0, return=False):
     print('Performing {} Random Forest'.format(header))
     randForest  = RandomForestRegressor( n_estimators=nTrees, 
                                             n_jobs=n_jobs, 
@@ -337,7 +357,7 @@ def random_forest_wrapper(features, labels, nTrees, n_jobs, header='PCA', return
                   \n\tRuntime:   {:.3f} seconds'.format(
                   header, randForest_oob*100, randForest_Rsq*100, time()-start))
     
-    joblib.dump(randForest, 'randForest_{}_approach_{}trees_{}resamp.save'.format(header, nTrees, n_resamp))
+    joblib.dump(randForest, 'randForest_{}_approach_{}trees_{}resamp.save'.format(header, nTrees, samp_num))
     
     return randForest
 
@@ -348,7 +368,7 @@ def gradient_boosting_wrapper(features, labels, nTrees, n_jobs, header='PCA',
     trainX, testX, trainY, testY = train_test_split(features, labels, test_size=0.25)
     
     print('Performing Gradient Boosting Regression with PCA Random Forest and Quantile Loss')
-    randForest_PCA_GBR = GradientBoostingRegressor(loss=loss, 
+    randforest = GradientBoostingRegressor(loss=loss, 
                                                    learning_rate=learning_rate, 
                                                    n_estimators=nTrees, 
                                                    subsample=subsample, 
@@ -368,66 +388,26 @@ def gradient_boosting_wrapper(features, labels, nTrees, n_jobs, header='PCA',
                                                    warm_start=True,
                                                    presort='auto')
     
-    print(pca_cal_features_SSscaled.shape, labels_SSscaled.shape)
+    print(features.shape, labels.shape)
     
     start=time()
-    randForest_PCA_GBR.fit(trainX, trainY)
+    randforest.fit(trainX, trainY)
     
-    randForest_PCA_GBR_pred_train = randForest_PCA_GBR.predict(trainX)
-    randForest_PCA_GBR_pred_test  = randForest_PCA_GBR.predict(testX)
-    randForest_PCA_GBR_Rsq_train  = r2_score(trainY, randForest_PCA_GBR_pred_train)
-    randForest_PCA_GBR_Rsq_test   = r2_score(testY , randForest_PCA_GBR_pred_test )
+    randForest_pred_train = randforest.predict(trainX)
+    randForest_pred_test  = randforest.predict(testX)
+    randForest_Rsq_train  = r2_score(trainY, randForest_pred_train)
+    randForest_Rsq_test   = r2_score(testY , randForest_pred_test )
     
     print('PCA Pretrained Random Forest:\n\tTrain R^2 Score: {:.3f}%\n\tTest R^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(
-                    randForest_PCA_GBR_Rsq_train*100, randForest_PCA_GBR_Rsq_test*100, time()-start))
+                    randForest_Rsq_train*100, randForest_Rsq_test*100, time()-start))
     
-    joblib.dump(randForest_PCA_GBR, 'randForest_GBR_PCA_approach_{}trees_{}resamp_{}core.save'.format(nTrees, n_resamp, core))
-    
-    del randForest_PCA_GBR, randForest_PCA_GBR_pred_train, randForest_PCA_GBR_pred_test
+    joblib.dump(randforest, 'randForest_GBR_PCA_approach_{}trees_{}resamp_{}core.save'.format(nTrees, samp_num, core_num))
     
     if full_output: 
-        return randForest_PCA_GBR
+        return randforest
     else: 
-        del randForest_PCA_GBR, randForest_PCA_GBR_pred_train, randForest_PCA_GBR_pred_test
+        del randforest, randForest_pred_train, randForest_pred_test
         # gc.collect();
-
-if do_std:
-    # **Standard Random Forest Approach**
-    # for nComps in range(1,spitzerData.shape[1]):
-    print('Performing STD Random Forest')
-    randForest_STD = RandomForestRegressor( n_estimators=nTrees, \
-                                            n_jobs=n_jobs, \
-                                            criterion='mse', \
-                                            max_depth=None, \
-                                            min_samples_split=2, \
-                                            min_samples_leaf=1, \
-                                            min_weight_fraction_leaf=0.0, \
-                                            max_features='auto', \
-                                            max_leaf_nodes=None, \
-                                            bootstrap=True, \
-                                            oob_score=True, \
-                                            random_state=42, \
-                                            verbose=True, \
-                                            warm_start=True)
-
-    start=time()
-    randForest_STD.fit(features_SSscaled, labels_SSscaled)
-
-    # Save for Later
-    importances = randForest_STD.feature_importances_
-    np.savetxt(importance_filename, importances)
-    
-    randForest_STD_oob = randForest_STD.oob_score_
-    randForest_STD_pred= randForest_STD.predict(features_SSscaled)
-    randForest_STD_Rsq = r2_score(labels_SSscaled, randForest_STD_pred)
-
-    print('Standard Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(randForest_STD_oob*100, randForest_STD_Rsq*100, time()-start))
-
-    joblib.dump(randForest_STD, 'randForest_STD_approach_{}trees_{}resamp.save'.format(nTrees, n_resamp))
-    
-    if need_gc:
-        del randForest_STD, randForest_STD_pred
-        gc.collect();
 
 if do_ica:
     # for nComps in range(1,spitzerData.shape[1]):
