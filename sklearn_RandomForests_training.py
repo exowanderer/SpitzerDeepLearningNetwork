@@ -320,6 +320,9 @@ if do_pca_rfr:
 
 do_pca_gbr= args['do_gbr']
 if do_pca_gbr:
+    
+    trainX, testX, trainY, testY = train_test_split(pca_cal_features_SSscaled, labels_SSscaled, test_size=0.25)
+    
     print('Performing Gradient Boosting Regression with PCA Random Forest and Quantile Loss')
     randForest_PCA_GBR = GradientBoostingRegressor(loss='quantile', 
                                                    learning_rate=0.1, 
@@ -347,13 +350,15 @@ if do_pca_gbr:
     print(pca_cal_features_SSscaled.shape, labels_SSscaled.shape)
     
     start=time()
-    randForest_PCA_GBR.fit(pca_cal_features_SSscaled, labels_SSscaled)
+    randForest_PCA_GBR.fit(trainX, trainY)
     
-    randForest_PCA_GBR_oob = randForest_PCA_GBR.oob_score_
-    randForest_PCA_GBR_pred= randForest_PCA_GBR.predict(pca_cal_features_SSscaled)
-    randForest_PCA_GBR_Rsq = r2_score(labels_SSscaled, randForest_PCA_GBR_pred)
+    randForest_PCA_GBR_pred_train = randForest_PCA_GBR.predict(trainX)
+    randForest_PCA_GBR_pred_test  = randForest_PCA_GBR.predict(testX)
+    randForest_PCA_GBR_Rsq_train  = r2_score(trainY, randForest_PCA_GBR_pred_train)
+    randForest_PCA_GBR_Rsq_test   = r2_score(testY , randForest_PCA_GBR_pred_test )
     
-    print('PCA Pretrained Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(randForest_PCA_oob*100, randForest_PCA_Rsq*100, time()-start))
+    print('PCA Pretrained Random Forest:\n\tTrain R^2 Score: {:.3f}%\n\tTest R^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(
+                    randForest_PCA_GBR_Rsq_train*100, randForest_PCA_GBR_Rsq_test*100, time()-start))
     
     if 'core' not in args.keys():
         from glob import glob
@@ -363,7 +368,7 @@ if do_pca_gbr:
             core_nums.append(fname.split('randForest_GBR_PCA_approach_{}trees_{}resamples_'.format(nTrees, n_resamp))[-1].split('core.save')[0])
         core = max(core_nums) + 1
     
-    joblib.dump(randForest_PCA_GBR, 'randForest_GBR_PCA_approach_{}trees_{}resamples_{}core.save'.format(nTrees, n_resamp, args['core']))
+    # joblib.dump(randForest_PCA_GBR, 'randForest_GBR_PCA_approach_{}trees_{}resamples_{}core.save'.format(nTrees, n_resamp, args['core']))
     
     # del randForest_PCA, randForest_PCA_pred
     # _ = gc.collect()
