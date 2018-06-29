@@ -3,7 +3,7 @@ try:
     ap = ArgumentParser()
     ap.add_argument('-ns' , '--n_resamp'    , required=False, type=int , default=0    , help="Number of resamples to perform (GBR=1; No Resamp=0).")
     ap.add_argument('-nt' , '--n_trees'     , required=False, type=int , default=100  , help="Number of trees in the forest.")
-    ap.add_argument('-c'  , '--core'        , required=False, type=int , default=A    , help="Which Core to Use GBR only Uses 1 Core at a time.")
+    ap.add_argument('-c'  , '--core'        , required=False, type=int , default='A'  , help="Which Core to Use GBR only Uses 1 Core at a time.")
     ap.add_argument('-pp' , '--pre_process' , required=False, type=bool, default=True , help="Flag whether to use StandardScaler to pre-process the data.")
     ap.add_argument('-std', '--do_std'      , required=False, type=bool, default=False, help="Use Standard Random Forest Regression.")
     ap.add_argument('-pca', '--do_pca'      , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with PCA preprocessing.")# nargs='?', const=True, 
