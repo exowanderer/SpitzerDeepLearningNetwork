@@ -4,12 +4,13 @@ ap.add_argument('-ns' , '--n_resamp'    , required=False, type=int , default=1  
 ap.add_argument('-nt' , '--n_trees'     , required=False, type=int , default=100  , help="Number of trees in the forest")
 ap.add_argument('-c'  , '--core'        , required=False, type=int , default=0    , help="Which Core to Use GBR only Uses 1 Core at a time.")
 ap.add_argument('-std', '--do_std'      , required=False, type=bool, default=False, help="Use Standard Random Forest Regression")
-ap.add_argument('-pca', '--do_pca'      , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with PCA preprocessing")
+ap.add_argument('-pca', '--do_pca'      , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with PCA preprocessing")# nargs='?', const=True, 
 ap.add_argument('-ica', '--do_ica'      , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with ICA preprocessing")
 ap.add_argument('-rfi', '--do_rfi'      , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with PCA preprocessing")
 ap.add_argument('-gbr', '--do_gbr'      , required=False, type=bool, default=False, help="Use Gradient Boosting Regression with PCA preprocessing")
 ap.add_argument('-rs' , '--random_state', required=False, type=bool, default=False, help="Use Gradient Boosting Regression with PCA preprocessing")
 ap.add_argument('-pdb', '--pdb_stop'    , required=False, type=bool, default=False, help="Stop the trace at the end with pdb.set_trace()")
+ap.add_argument('-nj', '--n_jobs'       , required=False, type=int , default=-1   , help="Number of cores to use Default:-1")
 args = vars(ap.parse_args())
 
 do_std  = args['do_std']
@@ -18,6 +19,7 @@ do_ica  = args['do_ica']
 do_rfi  = args['do_rfi']
 do_gbr  = args['do_gbr']
 pdb_stop= args['pdb_stop']
+n_jobs  = args['n_jobs']
 
 # Check if requested to complete more than one operatiion
 #   if so
@@ -59,7 +61,7 @@ from time import time
 start0 = time()
 
 def setup_features(dataRaw, label='flux', notFeatures=[], transformer=PCA(whiten=True), feature_scaler=StandardScaler(), 
-                    label_scaler=None, verbose=False, returnAll=None):
+                    label_scaler=None, verbose=True, returnAll=None):
     """Example function with types documented in the docstring.
 
         For production level usage: All scaling and transformations must be done 
@@ -245,7 +247,7 @@ features_SSscaled, labels_SSscaled = setup_features(dataRaw       = spitzerCalRe
                                                     transformer   = PCA(whiten=True), # THIS IS PCA-RF -- NOT DEFAULT
                                                     feature_scaler= StandardScaler(),
                                                     label_scaler  = None,
-                                                    verbose       = False,
+                                                    verbose       = True,
                                                     returnAll     = None)
 
 pca_cal_features_SSscaled = features_SSscaled
@@ -260,7 +262,7 @@ pca_cal_features_SSscaled, labels_SSscaled, spitzerCalRawData, \
                                                             transformer   = None, 
                                                             feature_scaler= StandardScaler(),
                                                             label_scaler  = None,
-                                                            verbose       = False,
+                                                            verbose       = True,
                                                             returnAll     = True)
 
 print(len(pca_cal_features_SSscaled))
@@ -305,7 +307,7 @@ if save_calibration_stacks:
 if do_pca:
     print('Performing PCA Random Forest')
     randForest_PCA = RandomForestRegressor( n_estimators=nTrees, 
-                                            n_jobs=-1, 
+                                            n_jobs=n_jobs, 
                                             criterion='mse', 
                                             max_depth=None, 
                                             min_samples_split=2, 
@@ -344,7 +346,7 @@ if do_gbr:
     randForest_PCA_GBR = GradientBoostingRegressor(loss='quantile', 
                                                    learning_rate=0.1, 
                                                    n_estimators=nTrees, 
-                                                   # n_jobs=-1,
+                                                   # n_jobs=n_jobs,
                                                    # bootstrap=True,
                                                    # oob_score=True, 
                                                    subsample=1.0, 
@@ -388,7 +390,7 @@ if do_std:
     # for nComps in range(1,spitzerData.shape[1]):
     print('Performing STD Random Forest')
     randForest_STD = RandomForestRegressor( n_estimators=nTrees, \
-                                            n_jobs=-1, \
+                                            n_jobs=n_jobs, \
                                             criterion='mse', \
                                             max_depth=None, \
                                             min_samples_split=2, \
@@ -431,7 +433,7 @@ if do_ica:
                                           transformer   = FastICA(), 
                                           feature_scaler= StandardScaler(),
                                           label_scaler  = None,
-                                          verbose       = False, 
+                                          verbose       = True, 
                                           returnAll     = 'features')
     
     print('took {} seconds'.format(time() - start))
@@ -446,7 +448,7 @@ if do_ica:
                                             max_leaf_nodes=None, 
                                             bootstrap=True, 
                                             oob_score=True, 
-                                            n_jobs=-1, 
+                                            n_jobs=n_jobs, 
                                             random_state=42, 
                                             verbose=True, 
                                             warm_start=True)
@@ -471,18 +473,18 @@ if do_rfi:
     print('Computing Importances for RFI Random Forest')
     importances = np.loadtxt(importance_filename)
     indices     = np.argsort(importances)[::-1]
-
+    
     cumsum = np.cumsum(importances[indices])
     nImportantSamples = np.argmax(cumsum >= 0.95) + 1
-
+    
     # **Random Forest Pretrained Random Forest Approach**
     rfi_cal_feature_set = features_SSscaled.T[indices][:nImportantSamples].T
-
+    
     # for nComps in range(1,spitzerData.shape[1]):
     print('Performing RFI Random Forest')
-
+    
     randForest_RFI = RandomForestRegressor( n_estimators=nTrees, \
-                                            n_jobs=-1, \
+                                            n_jobs=n_jobs, \
                                             criterion='mse', \
                                             max_depth=None, \
                                             min_samples_split=2, \
@@ -495,16 +497,16 @@ if do_rfi:
                                             random_state=42, \
                                             verbose=True, \
                                             warm_start=True)
-
+    
     start=time()
     randForest_RFI.fit(rfi_cal_feature_set, labels_SSscaled)
-
+    
     randForest_RFI_oob = randForest_RFI.oob_score_
     randForest_RFI_pred= randForest_RFI.predict(rfi_cal_feature_set)
     randForest_RFI_Rsq = r2_score(labels_SSscaled, randForest_RFI_pred)
-
+    
     print('RFI Pretrained Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(randForest_RFI_oob*100, randForest_RFI_Rsq*100, time()-start))
-
+    
     joblib.dump(randForest_RFI, 'randForest_RFI_approach_{}trees_{}resamp.save'.format(nTrees, n_resamp))
     
     if need_gc:
@@ -533,7 +535,7 @@ if do_rfi_pca:
                                                 max_leaf_nodes=None, 
                                                 bootstrap=True,
                                                 oob_score=True, 
-                                                n_jobs=-1, 
+                                                n_jobs=n_jobs, 
                                                 random_state=42, 
                                                 verbose=True, 
                                                 warm_start=True)
@@ -576,7 +578,7 @@ if do_rfi_ica:
                                                 max_leaf_nodes=None, 
                                                 bootstrap=True, 
                                                 oob_score=True, 
-                                                n_jobs=-1, 
+                                                n_jobs=n_jobs, 
                                                 random_state=42, 
                                                 verbose=True, 
                                                 warm_start=True)
