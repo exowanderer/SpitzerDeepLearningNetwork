@@ -316,7 +316,7 @@ if do_pca:
     
     print('PCA Pretrained Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(randForest_PCA_oob*100, randForest_PCA_Rsq*100, time()-start))
     
-    joblib.dump(randForest_PCA, 'randForest_PCA_approach_{}trees_{}resamples.save'.format(nTrees, n_resamp))
+    joblib.dump(randForest_PCA, 'randForest_PCA_approach_{}trees_{}resamp.save'.format(nTrees, n_resamp))
 
     if need_gc:
         del randForest_PCA, randForest_PCA_pred
@@ -365,13 +365,13 @@ if do_gbr:
     
     if 'core' not in args.keys():
         from glob import glob
-        existing_saves = glob('randForest_GBR_PCA_approach_{}trees_{}resamples_*core.save'.format(nTrees, n_resamp))
+        existing_saves = glob('randForest_GBR_PCA_approach_{}trees_{}resamp_*core.save'.format(nTrees, n_resamp))
         core_nums = []
         for fname in existing_saves:
-            core_nums.append(fname.split('randForest_GBR_PCA_approach_{}trees_{}resamples_'.format(nTrees, n_resamp))[-1].split('core.save')[0])
+            core_nums.append(fname.split('randForest_GBR_PCA_approach_{}trees_{}resamp_'.format(nTrees, n_resamp))[-1].split('core.save')[0])
         core = max(core_nums) + 1
     
-    joblib.dump(randForest_PCA_GBR, 'randForest_GBR_PCA_approach_{}trees_{}resamples_{}core.save'.format(nTrees, n_resamp, args['core']))
+    joblib.dump(randForest_PCA_GBR, 'randForest_GBR_PCA_approach_{}trees_{}resamp_{}core.save'.format(nTrees, n_resamp, args['core']))
     
     if need_gc:
         del randForest_PCA, randForest_PCA_pred
@@ -409,7 +409,7 @@ if do_std:
 
     print('Standard Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(randForest_STD_oob*100, randForest_STD_Rsq*100, time()-start))
 
-    joblib.dump(randForest_STD, 'randForest_STD_approach_{}trees_{}resamples.save'.format(nTrees, n_resamp))
+    joblib.dump(randForest_STD, 'randForest_STD_approach_{}trees_{}resamp.save'.format(nTrees, n_resamp))
     
     if need_gc:
         del randForest_STD, randForest_STD_pred
@@ -454,7 +454,7 @@ if do_ica:
     
     print('ICA Pretrained Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(randForest_ICA_oob*100, randForest_ICA_Rsq*100, time()-start))
     
-    joblib.dump(randForest_ICA, 'randForest_ICA_approach_{}trees_{}resamples.save'.format(nTrees, n_resamp))
+    joblib.dump(randForest_ICA, 'randForest_ICA_approach_{}trees_{}resamp.save'.format(nTrees, n_resamp))
     
     if need_gc:
         del randForest_ICA, randForest_ICA_oob, randForest_ICA_pred, randForest_ICA_Rsq
@@ -499,7 +499,7 @@ if do_rfi:
 
     print('RFI Pretrained Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(randForest_RFI_oob*100, randForest_RFI_Rsq*100, time()-start))
 
-    joblib.dump(randForest_RFI, 'randForest_RFI_approach_{}trees_{}resamples.save'.format(nTrees, n_resamp))
+    joblib.dump(randForest_RFI, 'randForest_RFI_approach_{}trees_{}resamp.save'.format(nTrees, n_resamp))
     
     if need_gc:
         del randForest_RFI, randForest_RFI_oob, randForest_RFI_pred, randForest_RFI_Rsq
@@ -542,7 +542,7 @@ if do_rfi_pca:
     print('RFI Pretrained with PCA Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(
         randForest_RFI_PCA_oob*100, randForest_RFI_PCA_Rsq*100, time()-start))
 
-    joblib.dump(randForest_RFI_PCA, 'randForest_RFI_PCA_approach_{}trees_{}resamples.save'.format(nTrees, n_resamp))
+    joblib.dump(randForest_RFI_PCA, 'randForest_RFI_PCA_approach_{}trees_{}resamp.save'.format(nTrees, n_resamp))
     
     if need_gc:
         del randForest_RFI_PCA, randForest_RFI_PCA_oob, randForest_RFI_PCA_pred, randForest_RFI_PCA_Rsq
@@ -585,7 +585,7 @@ if do_rfi_ica:
     print('RFI Pretrained with ICA Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(
         randForest_RFI_ICA_oob*100, randForest_RFI_ICA_Rsq*100, time()-start))
 
-    joblib.dump(randForest_RFI_ICA, 'randForest_RFI_ICA_approach_{}trees_{}resamples.save'.format(nTrees, n_resamp))
+    joblib.dump(randForest_RFI_ICA, 'randForest_RFI_ICA_approach_{}trees_{}resamp.save'.format(nTrees, n_resamp))
     
     if need_gc:
         del randForest_RFI_ICA, randForest_RFI_ICA_oob, randForest_RFI_ICA_pred, randForest_RFI_ICA_Rsq
