@@ -318,7 +318,7 @@ if n_resamp == 0:
     # Need to Transform the Scaled Features based off of the calibration distribution
     if save_calibration_stacks: joblib.dump(pipe_fitted, pipeline_save_name)
 
-for k_samp in range(n_resamp):
+for k_samp in tqdm(range(n_resamp),total=n_resamp):
     if k_samp == 0: print('Starting Resampling')
     
     features, labels, pipe_fitted = setup_features( dataRaw       = spitzerCalRawData, 
