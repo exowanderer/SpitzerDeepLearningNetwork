@@ -242,10 +242,10 @@ if do_ica:
 
 pipe  = Pipeline(operations)
 
-features, spitzerCalRawData, pipe_fitted  = setup_features( dataRaw       = spitzerCalResampled, 
-                                                            transformer   = pipe, 
-                                                            verbose       = verbose,
-                                                            returnAll     = True)
+# features, spitzerCalRawData, pipe_fitted  = setup_features( dataRaw       = spitzerCalResampled,
+#                                                             transformer   = pipe,
+#                                                             verbose       = verbose,
+#                                                             returnAll     = True)
 
 if do_rfi: 
     importance_filename = 'randForest_STD_feature_importances.txt'
