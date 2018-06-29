@@ -133,12 +133,12 @@ def setup_features(dataRaw, label='flux', notFeatures=[], pipeline=None, verbose
     if resample:
         print("Resampling ", end=" ")
         inputData = pd.DataFrame({colname:np.random.normal(dataRaw[colname], dataRaw[colerr]) \
-                                    for colname, colerr in tqdm(zip(resampling_inputs, resampling_errors), total=len(resampling_inputs))
+                                    for colname, colerr in tqdm(zip(input_labels, errors_labels), total=len(input_labels))
                                  })        
     
         print("took {} seconds".format(start - time()))
     else:
-        inputData = pd.DataFrame({colname:dataRaw[colname]for colname in resampling_inputs})
+        inputData = pd.DataFrame({colname:dataRaw[colname]for colname in input_labels})
     
     labels  = inputData[label].values
     
