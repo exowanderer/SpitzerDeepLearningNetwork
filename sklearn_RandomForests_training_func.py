@@ -239,7 +239,7 @@ for key in flux_normalized:
 spitzerCalRawData['bmjd_err']       = np.median(0.5*np.diff(spitzerCalRawData['bmjd']))
 spitzerCalRawData['np_err']         = np.sqrt(spitzerCalRawData['yerr'])
 
-for colname in spitzerCalRaw.columns:
+for colname in spitzerCalRawData.columns:
     if 'pix' in colname.lower() or 'pld' in colname.lower():
         spitzerCalRawData[colname+'_err'] = spitzerCalRawData[colname] * spitzerCalRawData['fluxerr']
 
