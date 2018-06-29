@@ -64,26 +64,22 @@ def setup_features(dataRaw, label='flux', notFeatures=[], transformer=PCA(whiten
     # notFeatures = list(notFeatures)
     # notFeatures.append(label) if label not in notFeatures else None
     
-    dataRaw       = pd.read_csv(filename) if isinstance(dataRaw,str) else dataRaw
+    dataRaw   = pd.read_csv(filename) if isinstance(dataRaw,str) else dataRaw
+    inputData = dataRaw.copy()
     
+    PLDpixels = pd.DataFrame({key:dataRaw[key] for key in dataRaw.columns if 'pix' in key})
     # PLDpixels     = {}
     # for key in dataRaw.columns.values:
     #     if 'pix' in key:
     #         PLDpixels[key] = dataRaw[key]
-    
+    # 
     # PLDpixels     = pd.DataFrame(PLDpixels)
-    PLDpixels     = pd.DataFrame({key:dataRaw[key] for key in dataRaw.columns if 'pix' in key})
+    
     PLDnorm       = np.sum(np.array(PLDpixels),axis=1)
     PLDpixels     = (PLDpixels.T / PLDnorm).T
     
-    inputData = dataRaw.copy()
-    
     # Overwrite the PLDpixels entries with the normalized version
     for key in dataRaw.columns: 
-        if key in PLDpixels.columns:
-            inputData[key] = PLDpixels[key]
-    
-    for key in dataRaw.columns:
         if key in PLDpixels.columns:
             inputData[key] = PLDpixels[key]
     
