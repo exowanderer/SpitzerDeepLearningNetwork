@@ -136,7 +136,7 @@ def setup_features(dataRaw, label='flux', notFeatures=[], pipeline=None, verbose
                                     for colname, colerr in tqdm(zip(input_labels, errors_labels), total=len(input_labels))
                                  })        
     
-        print("took {} seconds".format(start - time()))
+        print("took {} seconds".format(time() - start))
     else:
         inputData = pd.DataFrame({colname:dataRaw[colname]for colname in input_labels})
     
@@ -308,7 +308,7 @@ if n_resamp == 0:
     
     features = features.T[indices][:nImportantSamples].T if do_rfi else features
     
-    random_forest_wrapper(features, labels, n_trees, n_jobs, grad_boost=do_gbr, header=header, core_num=core, samp_num='no_')
+    random_forest_wrapper(features, labels, n_trees, n_jobs, grad_boost=do_gbr, header=header, core_num=core, samp_num='no_', verbose=verbose)
     
     pipeline_save_name      = 'spitzerCalFeature_pipeline_trnsfrmr_no_resamp_{}core.save'.format(core)
     
@@ -329,7 +329,7 @@ for k_samp in range(n_resamp):
     
     features = features.T[indices][:nImportantSamples].T if do_rfi else features
     
-    random_forest_wrapper(features, labels, n_trees, n_jobs, grad_boost=do_gbr, header=header, core_num=core, samp_num=k_samp)
+    random_forest_wrapper(features, labels, n_trees, n_jobs, grad_boost=do_gbr, header=header, core_num=core, samp_num=k_samp, verbose=verbose)
     
     pipeline_save_name      = 'spitzerCalFeature_pipeline_trnsfrmr_no_resamp_{}core.save'.format(core)
     
