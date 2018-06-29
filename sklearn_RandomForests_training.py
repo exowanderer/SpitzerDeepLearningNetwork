@@ -68,6 +68,7 @@ def setup_features(dataRaw, label='flux', notFeatures=[], transformer=PCA(whiten
     inputData = dataRaw.copy()
     
     PLDpixels = pd.DataFrame({key:dataRaw[key] for key in dataRaw.columns if 'pix' in key})
+    print(PLDpixels.shape, PLDpixels.columns)
     # PLDpixels     = {}
     # for key in dataRaw.columns.values:
     #     if 'pix' in key:
@@ -83,9 +84,9 @@ def setup_features(dataRaw, label='flux', notFeatures=[], transformer=PCA(whiten
         if key in PLDpixels.columns:
             inputData[key] = PLDpixels[key]
     
-    testPLD = np.array(pd.DataFrame({key:inputData[key] for key in inputData.columns.values if 'pix' in key})) if verbose else None
-    assert(not sum(abs(testPLD - np.array(PLDpixels))).all())  if verbose else None
-    print('Confirmed that PLD Pixels have been Normalized to Spec') if verbose else None
+    # testPLD = np.array(pd.DataFrame({key:inputData[key] for key in inputData.columns.values if 'pix' in key})) if verbose else None
+    # assert(not sum(abs(testPLD - np.array(PLDpixels))).all())  if verbose else None
+    # print('Confirmed that PLD Pixels have been Normalized to Spec') if verbose else None
     
     labels          = inputData[label].values
     inputData       = inputData.drop(label, axis=1) # remove
