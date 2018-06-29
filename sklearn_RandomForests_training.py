@@ -10,9 +10,14 @@ ap.add_argument('-gbr', '--do_gbr'  , required=False, type=bool, default=False, 
 ap.add_argument('-c'  , '--core'    , required=False, type=int , default=0    , help="Which Core to Use GBR only Uses 1 Core at a time.")
 args = vars(ap.parse_args())
 
-do_pca_rfr= not args['do_gbr']
-do_pca_gbr= args['do_gbr']
+do_std  = args['do_std']
+do_pca  = args['do_pca']
+do_ica  = args['do_ica']
+do_rfi  = args['do_rfi']
+do_gbr  = args['do_gbr']
 
+importance_filename = 'randForest_STD_feature_importances.txt'
+if do_rfi and not len(glob(importance_filename)): do_std = True
 
 import pandas as pd
 import numpy as np
@@ -402,7 +407,7 @@ if do_std:
 
     # Save for Later
     importances = randForest_STD.feature_importances_
-    np.savetxt('randForest_STD_feature_importances.txt', importances)
+    np.savetxt(importance_filename, importances)
     
     randForest_STD_oob = randForest_STD.oob_score_
     randForest_STD_pred= randForest_STD.predict(features_SSscaled)
@@ -461,7 +466,7 @@ if do_ica:
 
 # **Importance Sampling**
 print('Computing Importances for RFI Random Forest')
-importances = np.loadtxt('randForest_STD_feature_importances.txt')
+importances = np.loadtxt(importance_filename)
 indices     = np.argsort(importances)[::-1]
 
 cumsum = np.cumsum(importances[indices])
