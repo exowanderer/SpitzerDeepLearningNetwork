@@ -138,7 +138,7 @@ def setup_features(dataRaw, label='flux', notFeatures=[], pipeline=None, verbose
     
         print("took {} seconds".format(time() - start))
     else:
-        inputData = pd.DataFrame({colname:dataRaw[colname]for colname in input_labels})
+        inputData = pd.DataFrame({colname:dataRaw[colname] for colname in input_labels})
     
     labels  = inputData[label].values
     
@@ -230,7 +230,7 @@ spitzerCalFilename    = 'pmap_ch2_0p1s_x4_rmulti_s3_7.csv' if sp_fname == '' els
 spitzerCalRawData     = pd.read_csv(spitzerCalFilename)
 
 for key in flux_normalized:
-    spitzerCalRawData[key]        = spitzerCalRawData[key]      / np.median(spitzerCalRawData['flux'].values)
+    spitzerCalRawData[key]  = spitzerCalRawData[key] / np.median(spitzerCalRawData['flux'].values)
 
 # spitzerCalRawData['fluxerr']        = spitzerCalRawData['fluxerr']      / np.median(spitzerCalRawData['flux'].values)
 # spitzerCalRawData['bg_flux']        = spitzerCalRawData['bg_flux']      / np.median(spitzerCalRawData['flux'].values)
@@ -241,7 +241,7 @@ spitzerCalRawData['bmjd_err']       = np.median(0.5*np.diff(spitzerCalRawData['b
 spitzerCalRawData['np_err']         = np.sqrt(spitzerCalRawData['yerr'])
 
 for colname in spitzerCalRawData.columns:
-    if 'pix' in colname.lower() or 'pld' in colname.lower():
+    if 'err' not in colname.lower() and ('pix' in colname.lower() or 'pld' in colname.lower()):
         spitzerCalRawData[colname+'_err'] = spitzerCalRawData[colname] * spitzerCalRawData['fluxerr']
 
 start = time()
