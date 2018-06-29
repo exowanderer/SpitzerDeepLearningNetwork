@@ -93,7 +93,7 @@ def setup_features(dataRaw, label='flux', notFeatures=[],
 
     """
     
-    if isinstance(dataRaw,str)
+    if isinstance(dataRaw,str):
         dataRaw = pd.read_csv(filename)
     elif isinstance(dataRaw, dict):
         dataRaw = pd.DataFrame(dataRaw)
