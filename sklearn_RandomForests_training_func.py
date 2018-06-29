@@ -93,9 +93,12 @@ def setup_features(dataRaw, label='flux', notFeatures=[],
 
     """
     
-    dataRaw   = pd.read_csv(filename) if isinstance(dataRaw,str) \
-                                      else pd.DataFrame(dataRaw) if isinstance(dataRaw, dict) \
-                                      else dataRaw if isinstance(dataRaw, pd.DataFrame) else raise TypeError('The input must be a Pandas DataFrame or Dictionary with Equal Size Entries')
+    if isinstance(dataRaw,str)
+        dataRaw = pd.read_csv(filename)
+    elif isinstance(dataRaw, dict):
+        dataRaw = pd.DataFrame(dataRaw)
+    elif not isinstance(dataRaw, pd.DataFrame):
+        raise TypeError('The input must be a `pandas.DataFrame` or a `dict` with Equal Size Entries (to convert to df here)')
     
     # WHY IS THIS ALLOWED TO NOT HAVE PARENTHESES?
     # assert isinstance(dataRaw, pd.DataFrame), 'The input must be a Pandas DataFrame or Dictionary with Equal Size Entries'
