@@ -4,6 +4,7 @@ try:
     ap.add_argument('-ns' , '--n_resamp'    , required=False, type=int , default=0    , help="Number of resamples to perform (GBR=1; No Resamp=0)")
     ap.add_argument('-nt' , '--n_trees'     , required=False, type=int , default=100  , help="Number of trees in the forest")
     ap.add_argument('-c'  , '--core'        , required=False, type=int , default=A    , help="Which Core to Use GBR only Uses 1 Core at a time.")
+    ap.add_argument('-pp' , '--pre_process' , required=False, type=bool, default=True , help="Flag whether to use StandardScaler to pre-process the data")
     ap.add_argument('-std', '--do_std'      , required=False, type=bool, default=False, help="Use Standard Random Forest Regression")
     ap.add_argument('-pca', '--do_pca'      , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with PCA preprocessing")# nargs='?', const=True, 
     ap.add_argument('-ica', '--do_ica'      , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with ICA preprocessing")
@@ -13,27 +14,33 @@ try:
     ap.add_argument('-pdb', '--pdb_stop'    , required=False, type=bool, default=False, help="Stop the trace at the end with pdb.set_trace()")
     ap.add_argument('-nj', '--n_jobs'       , required=False, type=int , default=-1   , help="Number of cores to use Default:-1")
     args = vars(ap.parse_args())
-
+    
+    n_resamp= args['n_resamp']
+    n_trees = args['n_trees']
+    
     do_std  = args['do_std']
     do_pca  = args['do_pca']
     do_ica  = args['do_ica']
     do_rfi  = args['do_rfi']
     do_gbr  = args['do_gbr']
+    do_pp   = args['pre_process']
+    
     pdb_stop= args['pdb_stop']
     n_jobs  = args['n_jobs']
-    n_trees = args['n_trees']
+
 except Exception as e:
     # This section is for if/when I copy/paste the code into a ipython sesssion
     print('Error: {}'.format(e))
     
     n_resamp    = 0
     n_trees     = 100
-    core        = A # unknown
+    core        = 'A' # unknown
     do_std      = False
     do_pca      = False
     do_ica      = False
     do_rfi      = False
     do_gbr      = False
+    do_pp       = True
     rand_state  = 42
     pdb_stop    = False
     n_jobs      = -1
@@ -60,8 +67,9 @@ from glob                     import glob
 from time import time
 start0 = time()
 
-def setup_features(dataRaw, label='flux', notFeatures=[], transformer=PCA(whiten=True), feature_scaler=StandardScaler(), 
-                    label_scaler=None, verbose=True, returnAll=None):
+def setup_features(dataRaw, label='flux', notFeatures=[], 
+                    transformer=None, feature_scaler=None, label_scaler=None, 
+                    verbose=True, returnAll=None):
     """Example function with types documented in the docstring.
 
         For production level usage: All scaling and transformations must be done 
@@ -80,13 +88,19 @@ def setup_features(dataRaw, label='flux', notFeatures=[], transformer=PCA(whiten
             https://github.com/ExoWanderer/
 
     """
-    dataRaw   = pd.read_csv(filename) if isinstance(dataRaw,str) else dataRaw
+    
+    dataRaw   = pd.read_csv(filename) if isinstance(dataRaw,str) else pd.DataFrame(dataRaw) if isinstance(dataRaw, dict) else dataRaw if isinstance(dataRaw, pd.DataFrame)
+    
+    # WHY IS THIS ALLOWED TO NOT HAVE PARENTHESES?
+    assert isinstance(dataRaw, pd.DataFrame), 'The input must be a Pandas DataFrame or Dictionary with Equal Size Entries'
+    
     inputData = dataRaw.copy()
     
-    PLDpixels = pd.DataFrame({key:dataRaw[key] for key in dataRaw.columns if 'pix' in key})
+    # PLDpixels = pd.DataFrame({key:dataRaw[key] for key in dataRaw.columns if 'pix' in key})
+    pixCols = [colname for colname in inputData.columns if 'pix' in colname]
     
-    PLDnorm       = np.sum(np.array(PLDpixels),axis=1)
-    PLDpixels     = (PLDpixels.T / PLDnorm).T
+    PLDnorm             = np.sum(np.array(inputData[pixCols]),axis=1)
+    inputData[pixCols]  = (np.array(inputData[pixCols]).T / PLDnorm).T
     
     # Overwrite the PLDpixels entries with the normalized version
     for key in dataRaw.columns: 
@@ -174,7 +188,6 @@ if n_jobs == 1: print('WARNING: You are only using 1 core!')
 
 # Check if requested to complete more than one operatiion
 #   if so delete old instances
-need_gc = sum([args[key] for key in args.keys() if 'do_' in key]) > 1
 
 files_in_directory = glob('./*')
 
@@ -185,16 +198,18 @@ spitzerCalFilename    ='pmap_ch2_0p1s_x4_rmulti_s3_7.csv'
 
 spitzerCalRawData     = pd.read_csv(spitzerCalFilename)
 
-spitzerCalRawData['fluxerr']        = spitzerCalRawData['fluxerr']      / np.median(spitzerCalRawData['flux'].values)
-spitzerCalRawData['bg_flux']        = spitzerCalRawData['bg_flux']      / np.median(spitzerCalRawData['flux'].values)
-spitzerCalRawData['sigma_bg_flux']  = spitzerCalRawData['sigma_bg_flux']/ np.median(spitzerCalRawData['flux'].values)
-spitzerCalRawData['flux']           = spitzerCalRawData['flux']         / np.median(spitzerCalRawData['flux'].values)
+for key in flux_normalized:
+    spitzerCalRawData[key]        = spitzerCalRawData[key]      / np.median(spitzerCalRawData['flux'].values)
+
+# spitzerCalRawData['fluxerr']        = spitzerCalRawData['fluxerr']      / np.median(spitzerCalRawData['flux'].values)
+# spitzerCalRawData['bg_flux']        = spitzerCalRawData['bg_flux']      / np.median(spitzerCalRawData['flux'].values)
+# spitzerCalRawData['sigma_bg_flux']  = spitzerCalRawData['sigma_bg_flux']/ np.median(spitzerCalRawData['flux'].values)
+# spitzerCalRawData['flux']           = spitzerCalRawData['flux']         / np.median(spitzerCalRawData['flux'].values)
 
 spitzerCalRawData['bmjd_err']       = np.median(0.5*np.diff(spitzerCalRawData['bmjd']))
 spitzerCalRawData['np_err']         = np.sqrt(spitzerCalRawData['yerr'])
 
-n_PLD   = 9
-n_resamp= args['n_resamp']
+n_PLD   = len([key for key in spitzerCalRawData.keys() if 'pix' in key])
 
 resampling_inputs = ['flux', 'xpos', 'ypos', 'xfwhm', 'yfwhm', 'bg_flux', 'bmjd', 'np'] + ['pix{}'.format(k) for k in range(1,10)]
 resampling_errors = ['fluxerr', 'xerr', 'yerr', 'xerr', 'yerr', 'sigma_bg_flux', 'bmjd_err', 'np_err'] + ['fluxerr']*n_PLD
@@ -214,8 +229,15 @@ for k_samp in range(n_resamp):
     
     spitzerCalResampled = pd.DataFrame(spitzerCalResampled)
 
-if do_pca: transformer   = PCA(whiten=True)
-if do_ica: transformer   = FastICA()
+header = 'GBR' if do_gbr else 'RFI' if do_rfi else 'STD'
+
+if do_pca: 
+    transformer = PCA(whiten=True)
+    header     += '_PCA'
+
+if do_ica:
+    transformer = FastICA()
+    header     += '_ICA'
 
 feature_scaler  = StandardScaler() if do_pp else None
 
@@ -249,9 +271,10 @@ if do_ica:
 
 if do_rfi: 
     importance_filename = 'randForest_STD_feature_importances.txt'
-    if len(glob(importance_filename)): 
-        random_forest_wrapper(features, labels, n_trees, n_jobs, header='PCA', 
-                                core_num=0, samp_num=0, return=False)
+    if len(glob(importance_filename)) == 0: 
+        random_forest_wrapper(features, labels, n_trees, n_jobs, grad_boost=do_grb, header=header, 
+                                    core_num=0, samp_num=0, loss='quantile', learning_rate=0.1, 
+                                    subsample=1.0, full_output=False)
     
     print('Computing Importances for RFI Random Forest')
     importances = np.loadtxt(importance_filename)
@@ -261,12 +284,13 @@ if do_rfi:
     nImportantSamples = np.argmax(cumsum >= 0.95) + 1
     
     # **Random Forest Pretrained Random Forest Approach**
-    rfi_cal_feature_set = features_SSscaled.T[indices][:nImportantSamples].T
+    features = features.T[indices][:nImportantSamples].T
 
 if 'core' in args.keys():
     core = args['core']
-else:
+elif do_gbr:
     from glob import glob
+    output_name    = 'randForest_{}_approach_{}trees_{}resamp_{}core.save'.format(header, n_trees, samp_num, core_num)
     existing_saves = glob('randForest_GBR_PCA_approach_{}trees_{}resamp_*core.save'.format(n_trees, n_resamp))
     
     core_nums = []
@@ -274,6 +298,8 @@ else:
         core_nums.append(fname.split('randForest_GBR_PCA_approach_{}trees_{}resamp_'.format(n_trees, n_resamp))[-1].split('core.save')[0])
     
     core = max(core_nums) + 1
+else:
+    core = 'A'
 
 label_sclr_save_name    = 'spitzerCalLabelScaler_fit_{}resamp_{}core.save'.format(n_resamp, core)
 feature_sclr_save_name  = 'spitzerCalFeatureScaler_fit_{}resamp_{}core.save'.format(n_resamp, core)
