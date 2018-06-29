@@ -266,12 +266,16 @@ pca_cal_features_SSscaled, labels_SSscaled, spitzerCalRawData, \
 print(len(pca_cal_features_SSscaled))
 print('took {} seconds'.format(time() - start))
 
-if 'core' not in args.keys():
+if 'core' in args.keys():
+    core = args['core']
+else:
     from glob import glob
     existing_saves = glob('randForest_GBR_PCA_approach_{}trees_{}resamp_*core.save'.format(nTrees, n_resamp))
+    
     core_nums = []
     for fname in existing_saves:
         core_nums.append(fname.split('randForest_GBR_PCA_approach_{}trees_{}resamp_'.format(nTrees, n_resamp))[-1].split('core.save')[0])
+    
     core = max(core_nums) + 1
 
 label_sclr_save_name    = 'spitzerCalLabelScaler_fit_{}resamp_{}core.save'.format(n_resamp, core)
