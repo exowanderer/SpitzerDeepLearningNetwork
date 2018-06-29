@@ -14,6 +14,7 @@ try:
     ap.add_argument('-pdb', '--pdb_stop'    , required=False, type=bool, default=False, help="Stop the trace at the end with pdb.set_trace().")
     ap.add_argument('-nj' , '--n_jobs'      , required=False, type=int , default=-1   , help="Number of cores to use Default:-1.")
     ap.add_argument('-df' , '--data_file'   , required=False, type=str , default=''   , help="The csv file with the Spitzer Calibration Information.")
+    ap.add_argument('-v'  , '--verbose'     , required=False, type=bool, default=False, help="Whether to print out lots of things or just a few things")
     args = vars(ap.parse_args())
     
     n_resamp= args['n_resamp']
@@ -29,6 +30,8 @@ try:
     pdb_stop= args['pdb_stop']
     n_jobs  = args['n_jobs']
     sp_fname= args['data_file']
+    
+    verbose = args['verbose']
     
 except Exception as e:
     # This section is for if/when I copy/paste the code into a ipython sesssion
@@ -47,6 +50,7 @@ except Exception as e:
     pdb_stop    = False
     n_jobs      = -1
     sp_fname    = ''
+    verbose     = True
 
 import pandas as pd
 import numpy as np
