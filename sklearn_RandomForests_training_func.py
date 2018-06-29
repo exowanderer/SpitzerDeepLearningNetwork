@@ -294,11 +294,11 @@ if 'core' in args.keys():
 elif do_gbr:
     from glob import glob
     output_name    = 'randForest_{}_approach_{}trees_{}resamp_{}core.save'.format(header, n_trees, samp_num, core_num)
-    existing_saves = glob('randForest_GBR_PCA_approach_{}trees_{}resamp_*core.save'.format(n_trees, n_resamp))
+    existing_saves = glob('randForest_{}_approach_{}trees_{}resamp_*core.save'.format(header, n_trees, n_resamp))
     
     core_nums = []
     for fname in existing_saves:
-        core_nums.append(fname.split('randForest_GBR_PCA_approach_{}trees_{}resamp_'.format(n_trees, n_resamp))[-1].split('core.save')[0])
+        core_nums.append(fname.split('randForest_{}_approach_{}trees_{}resamp_'.format(header, n_trees, n_resamp))[-1].split('core.save')[0])
     
     core = max(core_nums) + 1
 else:
@@ -338,7 +338,7 @@ for k_samp in tqdm(range(n_resamp),total=n_resamp):
     
     random_forest_wrapper(features, labels, n_trees, n_jobs, grad_boost=do_gbr, header=header, core_num=core, samp_num=k_samp, verbose=verbose)
     
-    pipeline_save_name      = 'spitzerCalFeature_pipeline_trnsfrmr_no_resamp_{}core.save'.format(core)
+    pipeline_save_name      = 'spitzerCalFeature_pipeline_trnsfrmr_{}resamp_{}core.save'.format(k_samp, core)
     
     # Save the stack if the stack does not exist and the pipeline is not None
     save_calibration_stacks = pipeline_save_name not in files_in_directory and pipe_fitted is not None
