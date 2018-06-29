@@ -1,18 +1,19 @@
 try:
     from argparse import ArgumentParser
     ap = ArgumentParser()
-    ap.add_argument('-ns' , '--n_resamp'    , required=False, type=int , default=0    , help="Number of resamples to perform (GBR=1; No Resamp=0)")
-    ap.add_argument('-nt' , '--n_trees'     , required=False, type=int , default=100  , help="Number of trees in the forest")
+    ap.add_argument('-ns' , '--n_resamp'    , required=False, type=int , default=0    , help="Number of resamples to perform (GBR=1; No Resamp=0).")
+    ap.add_argument('-nt' , '--n_trees'     , required=False, type=int , default=100  , help="Number of trees in the forest.")
     ap.add_argument('-c'  , '--core'        , required=False, type=int , default=A    , help="Which Core to Use GBR only Uses 1 Core at a time.")
-    ap.add_argument('-pp' , '--pre_process' , required=False, type=bool, default=True , help="Flag whether to use StandardScaler to pre-process the data")
-    ap.add_argument('-std', '--do_std'      , required=False, type=bool, default=False, help="Use Standard Random Forest Regression")
-    ap.add_argument('-pca', '--do_pca'      , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with PCA preprocessing")# nargs='?', const=True, 
-    ap.add_argument('-ica', '--do_ica'      , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with ICA preprocessing")
-    ap.add_argument('-rfi', '--do_rfi'      , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with PCA preprocessing")
-    ap.add_argument('-gbr', '--do_gbr'      , required=False, type=bool, default=False, help="Use Gradient Boosting Regression with PCA preprocessing")
-    ap.add_argument('-rs' , '--random_state', required=False, type=int , default=42   , help="Seed for random state with which to reinitialize a specific instance")
-    ap.add_argument('-pdb', '--pdb_stop'    , required=False, type=bool, default=False, help="Stop the trace at the end with pdb.set_trace()")
-    ap.add_argument('-nj', '--n_jobs'       , required=False, type=int , default=-1   , help="Number of cores to use Default:-1")
+    ap.add_argument('-pp' , '--pre_process' , required=False, type=bool, default=True , help="Flag whether to use StandardScaler to pre-process the data.")
+    ap.add_argument('-std', '--do_std'      , required=False, type=bool, default=False, help="Use Standard Random Forest Regression.")
+    ap.add_argument('-pca', '--do_pca'      , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with PCA preprocessing.")# nargs='?', const=True, 
+    ap.add_argument('-ica', '--do_ica'      , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with ICA preprocessing.")
+    ap.add_argument('-rfi', '--do_rfi'      , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with PCA preprocessing.")
+    ap.add_argument('-gbr', '--do_gbr'      , required=False, type=bool, default=False, help="Use Gradient Boosting Regression with PCA preprocessing.")
+    ap.add_argument('-rs' , '--random_state', required=False, type=int , default=42   , help="Seed for random state with which to reinitialize a specific instance.")
+    ap.add_argument('-pdb', '--pdb_stop'    , required=False, type=bool, default=False, help="Stop the trace at the end with pdb.set_trace().")
+    ap.add_argument('-nj' , '--n_jobs'      , required=False, type=int , default=-1   , help="Number of cores to use Default:-1.")
+    ap.add_argument('-df' , '--data_file'   , required=False, type=str , default=''   , help="The csv file with the Spitzer Calibration Information.")
     args = vars(ap.parse_args())
     
     n_resamp= args['n_resamp']
@@ -27,7 +28,8 @@ try:
     
     pdb_stop= args['pdb_stop']
     n_jobs  = args['n_jobs']
-
+    sp_fname= args['data_file']
+    
 except Exception as e:
     # This section is for if/when I copy/paste the code into a ipython sesssion
     print('Error: {}'.format(e))
@@ -44,6 +46,7 @@ except Exception as e:
     rand_state  = 42
     pdb_stop    = False
     n_jobs      = -1
+    sp_fname    = ''
 
 import pandas as pd
 import numpy as np
@@ -54,6 +57,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 from sklearn.model_selection  import train_test_split
+from sklearn.pipeline         import Pipeline
 from sklearn.preprocessing    import StandardScaler, MinMaxScaler, minmax_scale
 from sklearn.ensemble         import RandomForestRegressor, ExtraTreesRegressor, AdaBoostRegressor, GradientBoostingRegressor
 from sklearn.decomposition    import PCA, FastICA
@@ -68,8 +72,8 @@ from time import time
 start0 = time()
 
 def setup_features(dataRaw, label='flux', notFeatures=[], 
-                    transformer=None, feature_scaler=None, label_scaler=None, 
-                    verbose=True, returnAll=None):
+                    pipeline=None, verbose=True, returnAll=None):
+    
     """Example function with types documented in the docstring.
 
         For production level usage: All scaling and transformations must be done 
@@ -122,25 +126,21 @@ def setup_features(dataRaw, label='flux', notFeatures=[],
     
     if verbose: start = time()
     
-    labels_scaled     = label_scaler.fit_transform(labels[:,None]).ravel() if label_scaler   is not None else labels
-    features_scaled   = feature_scaler.fit_transform(features)             if feature_scaler is not None else features
-    features_trnsfrmd = transformer.fit_transform(features_scaled)         if transformer    is not None else features_scaled
+    labels_scaled     = labels# label_scaler.fit_transform(labels[:,None]).ravel() if label_scaler   is not None else labels
+    features_trnsfrmd = pipeline.fit_transform(features_scaled) if transformer is not None else features
     
     if verbose: print('took {} seconds'.format(time() - start))
     
     if returnAll == True:
-        return features_trnsfrmd, labels_scaled, dataRaw, transformer, label_scaler, feature_scaler
+        return features_trnsfrmd, dataRaw, pipeline
     
     if returnAll == 'features':
         return features_trnsfrmd
     
-    if returnAll == 'labels':
-        return labels_scaled
+    if returnAll == 'with raw data':
+        return features_trnsfrmd, dataRaw
     
-    if returnAll == 'both with raw data':
-        features_trnsfrmd, labels_scaled, dataRaw
-    
-    return features_trnsfrmd, labels_scaled
+    return features_trnsfrmd
 
 def random_forest_wrapper(features, labels, n_trees, n_jobs, grad_boost=False, header='PCA', 
                             core_num=0, samp_num=0, loss='quantile', learning_rate=0.1, 
@@ -196,7 +196,7 @@ files_in_directory = glob('./*')
 # ## Load CSVs data
 flux_normalized       = ['fluxerr', 'bg_flux', 'sigma_bg_flux', 'flux']
 spitzerCalNotFeatures = ['flux', 'fluxerr', 'dn_peak', 'xycov', 't_cernox', 'xerr', 'yerr', 'sigma_bg_flux']
-spitzerCalFilename    ='pmap_ch2_0p1s_x4_rmulti_s3_7.csv'
+spitzerCalFilename    = 'pmap_ch2_0p1s_x4_rmulti_s3_7.csv' if sp_fname == '' else sp_fname
 
 spitzerCalRawData     = pd.read_csv(spitzerCalFilename)
 
@@ -211,82 +211,53 @@ for key in flux_normalized:
 spitzerCalRawData['bmjd_err']       = np.median(0.5*np.diff(spitzerCalRawData['bmjd']))
 spitzerCalRawData['np_err']         = np.sqrt(spitzerCalRawData['yerr'])
 
-n_PLD   = len([key for key in spitzerCalRawData.keys() if 'pix' in key])
+n_PLD   = len([key for key in spitzerCalRawData.keys() if 'pix' in key or 'pld' in key])
 
 resampling_inputs = ['flux', 'xpos', 'ypos', 'xfwhm', 'yfwhm', 'bg_flux', 'bmjd', 'np'] + ['pix{}'.format(k) for k in range(1,10)]
 resampling_errors = ['fluxerr', 'xerr', 'yerr', 'xerr', 'yerr', 'sigma_bg_flux', 'bmjd_err', 'np_err'] + ['fluxerr']*n_PLD
 
-if n_resamp == 0:
-    print('No Resampling')
-    spitzerCalResampled = pd.DataFrame({colname:spitzerCalRawData[colname] for colname, colerr in tqdm(zip(resampling_inputs, resampling_errors), total=len(resampling_inputs))})
+start = time()
+print("Transforming Data ", end=" ")
 
-for k_samp in range(n_resamp):
-    spitzerCalResampled = {}
-    print('Starting Resampling')
-    for colname, colerr in tqdm(zip(resampling_inputs, resampling_errors), total=len(resampling_inputs)):
-        if 'pix' in colname:
-            spitzerCalResampled[colname]  = np.random.normal(spitzerCalRawData[colname], spitzerCalRawData[colname]*spitzerCalRawData['fluxerr'], size=(n_resamp,len(spitzerCalRawData))).flatten()
-        else:
-            spitzerCalResampled[colname]  = np.random.normal(spitzerCalRawData[colname], spitzerCalRawData[colerr], size=(n_resamp,len(spitzerCalRawData))).flatten()
-    
-    spitzerCalResampled = pd.DataFrame(spitzerCalResampled)
-
+operations = []
 header = 'GBR' if do_gbr else 'RFI' if do_rfi else 'STD'
 
+if do_pp: 
+    print('Adding Standard Scaler Preprocessing to Pipeline')
+    operations.append(('std_sclr', StandardScaler()))
+    header     += '_SS'
+
 if do_pca: 
-    transformer = PCA(whiten=True)
+    print('Adding PCA to Pipeline')
+    operations.append(('pca', PCA(whiten=True)))
     header     += '_PCA'
 
 if do_ica:
-    transformer = FastICA()
+    print('Adding ICA to Pipeline')
+    operations.append(('ica', FastICA(whiten=True)))
     header     += '_ICA'
 
-feature_scaler  = StandardScaler() if do_pp else None
+pipe  = Pipeline(operations)
 
-start = time()
-print('Grabbing PCA', end=" ")
-features, labels, spitzerCalRawData, \
-    pca_trnsfrmr, label_sclr, feature_sclr = setup_features(dataRaw       = spitzerCalResampled, 
-                                                            transformer   = transformer, 
-                                                            feature_scaler= feature_scaler,
-                                                            label_scaler  = label_scaler,
+features, spitzerCalRawData, pipe_fitted  = setup_features( dataRaw       = spitzerCalResampled, 
+                                                            transformer   = pipe, 
                                                             verbose       = verbose,
                                                             returnAll     = True)
 
-print('took {} seconds'.format(time() - start))
-
-if do_ica:
-    # for nComps in range(1,spitzerData.shape[1]):
-    print('Performing ICA Random Forest')
-    
-    start = time()
-    print('Performing ICA', end=" ")
-    ica_cal_feature_set  = setup_features(dataRaw       = spitzerCalResampled, 
-                                          notFeatures   = spitzerCalNotFeatures, 
-                                          transformer   = FastICA(), 
-                                          feature_scaler= StandardScaler(),
-                                          label_scaler  = None,
-                                          verbose       = True, 
-                                          returnAll     = 'features')
-    
-    print('took {} seconds'.format(time() - start))
-
 if do_rfi: 
     importance_filename = 'randForest_STD_feature_importances.txt'
+    
     if len(glob(importance_filename)) == 0: 
-        random_forest_wrapper(features, labels, n_trees, n_jobs, grad_boost=do_grb, header=header, 
-                                    core_num=0, samp_num=0, loss='quantile', learning_rate=0.1, 
-                                    subsample=1.0, full_output=False)
+        raise Exception("MUST Run 'STD' operation before 'RFI', to generate file: {}".format(importance_filename))
     
     print('Computing Importances for RFI Random Forest')
     importances = np.loadtxt(importance_filename)
     indices     = np.argsort(importances)[::-1]
     
-    cumsum = np.cumsum(importances[indices])
-    nImportantSamples = np.argmax(cumsum >= 0.95) + 1
-    
-    # **Random Forest Pretrained Random Forest Approach**
-    features = features.T[indices][:nImportantSamples].T
+    imp_sum = np.cumsum(importances[indices])
+    nImportantSamples = np.argmax(imp_sum >= 0.95) + 1
+
+print('took {} seconds'.format(time() - start))
 
 if 'core' in args.keys():
     core = args['core']
@@ -303,30 +274,48 @@ elif do_gbr:
 else:
     core = 'A'
 
-label_sclr_save_name    = 'spitzerCalLabelScaler_fit_{}resamp_{}core.save'.format(n_resamp, core)
-feature_sclr_save_name  = 'spitzerCalFeatureScaler_fit_{}resamp_{}core.save'.format(n_resamp, core)
-pca_trnsfrmr_save_name  = 'spitzerCalFeaturePCA_trnsfrmr_{}resamp_{}core.save'.format(n_resamp, core)
+pipeline_save_name      = 'spitzerCalFeature_pipeline_trnsfrmr_{}resamp_{}core.save'.format(n_resamp, core)
 
-save_calibration_stacks = False
-if label_sclr_save_name   not in files_in_directory and label_sclr   is not None: save_calibration_stacks = True
-if feature_sclr_save_name not in files_in_directory and feature_sclr is not None: save_calibration_stacks = True
-if pca_trnsfrmr_save_name not in files_in_directory and pca_trnsfrmr is not None: save_calibration_stacks = True
+# Save the stack if the stack does not exist and the pipeline is not None
+save_calibration_stacks = pipeline_save_name not in files_in_directory and pipe_fitted is not None
 
 if save_calibration_stacks:
-    # *** For production level usage ***
-    # All scaling and transformations must be done with respect to the calibration data distributions
-    #   - That means to use .transform instead of .fit_transform
-    #   - See `predict_with_scaled_transformer`
-    
-    # Need to Scale the Labels based off of the calibration distribution
-    joblib.dump(label_sclr  , label_sclr_save_name)
-    
-    # Need to Scale the Features based off of the calibration distribution
-    joblib.dump(feature_sclr, feature_sclr_save_name)
-    
     # Need to Transform the Scaled Features based off of the calibration distribution
-    joblib.dump(pca_trnsfrmr, pca_trnsfrmr_save_name)
+    joblib.dump(pipe_fitted, pca_trnsfrmr_save_name)
 
+if n_resamp == 0:
+    print('No Resampling')
+    spitzerCalResampled = pd.DataFrame({colname:spitzerCalRawData[colname] for colname, colerr in tqdm(zip(resampling_inputs, resampling_errors), total=len(resampling_inputs))})
+    
+    features, spitzerCalRawData, pipe_fitted  = setup_features( dataRaw       = spitzerCalResampled, 
+                                                                transformer   = pipe, 
+                                                                verbose       = verbose,
+                                                                returnAll     = True)
+    
+    features = features.T[indices][:nImportantSamples].T if do_rfi else features
+    
+    random_forest_wrapper(features, labels, n_trees, n_jobs, grad_boost=do_gbr, header=header, core_num=core, samp_num='A')
+
+for k_samp in range(n_resamp):
+    if k_samp == 0: print('Starting Resampling')
+    
+    spitzerCalResampled = {}
+    for colname, colerr in tqdm(zip(resampling_inputs, resampling_errors), total=len(resampling_inputs)):
+        if 'pix' in colname:
+            spitzerCalResampled[colname]  = np.random.normal(spitzerCalRawData[colname], spitzerCalRawData[colname]*spitzerCalRawData['fluxerr'], size=(n_resamp,len(spitzerCalRawData))).flatten()
+        else:
+            spitzerCalResampled[colname]  = np.random.normal(spitzerCalRawData[colname], spitzerCalRawData[colerr], size=(n_resamp,len(spitzerCalRawData))).flatten()
+    
+    spitzerCalResampled = pd.DataFrame(spitzerCalResampled)
+    
+    features, spitzerCalRawData, pipe_fitted  = setup_features( dataRaw       = spitzerCalResampled, 
+                                                                transformer   = pipe, 
+                                                                verbose       = verbose,
+                                                                returnAll     = True)
+    
+    features = features.T[indices][:nImportantSamples].T if do_rfi else features
+    
+    random_forest_wrapper(features, labels, n_trees, n_jobs, grad_boost=do_gbr, header=header, core_num=core, samp_num=k_samp)
 
 print('\n\nFull Operation took {:.2f} minutes'.format((time() - start0)/60))
 if pdb_stop: pdb.set_trace()
