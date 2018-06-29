@@ -277,15 +277,6 @@ elif do_gbr:
 else:
     core = 'A'
 
-pipeline_save_name      = 'spitzerCalFeature_pipeline_trnsfrmr_{}resamp_{}core.save'.format(n_resamp, core)
-
-# Save the stack if the stack does not exist and the pipeline is not None
-save_calibration_stacks = pipeline_save_name not in files_in_directory and pipe_fitted is not None
-
-if save_calibration_stacks:
-    # Need to Transform the Scaled Features based off of the calibration distribution
-    joblib.dump(pipe_fitted, pca_trnsfrmr_save_name)
-
 if n_resamp == 0:
     print('No Resampling')
     spitzerCalResampled = pd.DataFrame({colname:spitzerCalRawData[colname] for colname, colerr in tqdm(zip(resampling_inputs, resampling_errors), total=len(resampling_inputs))})
@@ -298,6 +289,14 @@ if n_resamp == 0:
     features = features.T[indices][:nImportantSamples].T if do_rfi else features
     
     random_forest_wrapper(features, labels, n_trees, n_jobs, grad_boost=do_gbr, header=header, core_num=core, samp_num='A')
+    
+    pipeline_save_name      = 'spitzerCalFeature_pipeline_trnsfrmr_no_resamp_{}core.save'.format(core)
+    
+    # Save the stack if the stack does not exist and the pipeline is not None
+    save_calibration_stacks = pipeline_save_name not in files_in_directory and pipe_fitted is not None
+    
+    # Need to Transform the Scaled Features based off of the calibration distribution
+    if save_calibration_stacks: joblib.dump(pipe_fitted, pca_trnsfrmr_save_name)        
 
 for k_samp in range(n_resamp):
     if k_samp == 0: print('Starting Resampling')
@@ -319,6 +318,14 @@ for k_samp in range(n_resamp):
     features = features.T[indices][:nImportantSamples].T if do_rfi else features
     
     random_forest_wrapper(features, labels, n_trees, n_jobs, grad_boost=do_gbr, header=header, core_num=core, samp_num=k_samp)
+    
+    pipeline_save_name      = 'spitzerCalFeature_pipeline_trnsfrmr_no_resamp_{}core.save'.format(core)
+    
+    # Save the stack if the stack does not exist and the pipeline is not None
+    save_calibration_stacks = pipeline_save_name not in files_in_directory and pipe_fitted is not None
+    
+    # Need to Transform the Scaled Features based off of the calibration distribution
+    if save_calibration_stacks: joblib.dump(pipe_fitted, pca_trnsfrmr_save_name)        
 
 print('\n\nFull Operation took {:.2f} minutes'.format((time() - start0)/60))
 if pdb_stop: pdb.set_trace()
