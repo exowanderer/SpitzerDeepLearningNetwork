@@ -1,3 +1,19 @@
+from argparse import ArgumentParser
+ap = ArgumentParser()
+ap.add_argument('-ns' , '--n_resamp', required=True , type=int , default=0    , help="Number of resamples to perform (GBR=1; No Resamp=0)")
+ap.add_argument('-nt' , '--n_trees' , required=True , type=int , default=100  , help="Number of trees in the forest")
+ap.add_argument('-std', '--do_std'  , required=False, type=bool, default=False, help="Use Standard Random Forest Regression")
+ap.add_argument('-pca', '--do_pca'  , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with PCA preprocessing")
+ap.add_argument('-ica', '--do_ica'  , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with ICA preprocessing")
+ap.add_argument('-rfi', '--do_rfi'  , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with PCA preprocessing")
+ap.add_argument('-gbr', '--do_gbr'  , required=False, type=bool, default=False, help="Use Gradient Boosting Regression with PCA preprocessing")
+ap.add_argument('-c'  , '--core'    , required=False, type=int , default=0    , help="Which Core to Use GBR only Uses 1 Core at a time.")
+args = vars(ap.parse_args())
+
+do_pca_rfr= not args['do_gbr']
+do_pca_gbr= args['do_gbr']
+
+
 import pandas as pd
 import numpy as np
 # import tensorflow as tf
@@ -29,17 +45,6 @@ from glob                     import glob
 
 from time import time
 start0 = time()
-
-import pandas as pd
-
-
-from argparse import ArgumentParser
-ap = ArgumentParser()
-ap.add_argument('-ns' , '--n_resamp', required=True , type=int , default=0    , help="Number of resamples to perform (GBR=1; No Resamp=0)")
-ap.add_argument('-nt' , '--n_trees' , required=True , type=int , default=100  , help="Number of trees in the forest")
-ap.add_argument('-gbr', '--do_gbr'  , required=False, type=bool, default=False, help="Use Gradient Boosting Regression with PCA preprocessing")
-ap.add_argument('-c'  , '--core'    , required=False, type=int , default=0    , help="Which Core to Use GBR only Uses 1 Core at a time.")
-args = vars(ap.parse_args())
 
 def setup_features(dataRaw, label='flux', notFeatures=[], transformer=PCA(whiten=True), feature_scaler=StandardScaler(), 
                     label_scaler=None, verbose=False, returnAll=None):
@@ -285,8 +290,8 @@ print('took {} seconds'.format(time() - start))
 #     joblib.dump(feature_sclr, 'spitzerCalFeatureScaler_fit.save')
 #     # Need to Transform the Scaled Features based off of the calibration distribution
 #     joblib.dump(pca_trnsfrmr, 'spitzerCalFeaturePCA_trnsfrmr.save')
-do_pca_rfr= not args['do_gbr']
-if do_pca_rfr:
+
+if do_pca:
     print('Performing PCA Random Forest')
     randForest_PCA = RandomForestRegressor( n_estimators=nTrees, 
                                             n_jobs=-1, 
@@ -319,8 +324,7 @@ if do_pca_rfr:
     # del randForest_PCA, randForest_PCA_pred
     # _ = gc.collect()
 
-do_pca_gbr= args['do_gbr']
-if do_pca_gbr:
+if do_gbr:
     
     trainX, testX, trainY, testY = train_test_split(pca_cal_features_SSscaled, labels_SSscaled, test_size=0.25)
     
@@ -498,6 +502,7 @@ if do_rfi:
     del randForest_RFI, randForest_RFI_oob, randForest_RFI_pred, randForest_RFI_Rsq
     _ = gc.collect()
 
+do_rfi_pca=False
 if do_rfi_pca:
     # **PCA Pretrained Random Forest Approach**
     print('Performing PCA on RFI', end=" ")
@@ -539,6 +544,7 @@ if do_rfi_pca:
     del randForest_RFI_PCA, randForest_RFI_PCA_oob, randForest_RFI_PCA_pred, randForest_RFI_PCA_Rsq
     _ = gc.collect()
 
+do_rfi_ica = False
 if do_rfi_ica:
     # **ICA Pretrained Random Forest Approach**
     print('Performing ICA on RFI', end=" ")
