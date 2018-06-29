@@ -120,7 +120,27 @@ def setup_features(dataRaw, label='flux', notFeatures=[], pipeline=None, verbose
     #         inputData[key] = PLDpixels[key]
     #
     # Assign the labels
-    labels          = inputData[label].values
+    n_PLD   = len([key for key in dataRaw.keys() if 'err' not in colname.lower() and ('pix' in key.lower() or 'pld' in key.lower())])
+    
+    input_labels  = [colname for colname in dataRaw.columns if colname not in notFeatures and 'err' not in colname.lower()]
+    errors_labels = [colname for colname in dataRaw.columns if colname not in notFeatures and 'err'     in colname.lower()]
+    
+    # resampling_inputs = ['flux', 'xpos', 'ypos', 'xfwhm', 'yfwhm', 'bg_flux', 'bmjd', 'np'] + ['pix{}'.format(k) for k in range(1,10)]
+    # resampling_errors = ['fluxerr', 'xerr', 'yerr', 'xerr', 'yerr', 'sigma_bg_flux', 'bmjd_err', 'np_err'] + ['fluxerr']*n_PLD
+    
+    start = time()
+    
+    if resample:
+        print("Resampling ", end=" ")
+        inputData = pd.DataFrame({colname:np.random.normal(dataRaw[colname], dataRaw[colerr]) \
+                                    for colname, colerr in tqdm(zip(resampling_inputs, resampling_errors), total=len(resampling_inputs))
+                                 })        
+    
+        print("took {} seconds".format(start - time()))
+    else:
+        inputData = pd.DataFrame({colname:dataRaw[colname]for colname in resampling_inputs})
+    
+    labels  = inputData[label].values
     
     # explicitly remove the label
     inputData.drop(label, axis=1, inplace=True)
@@ -132,21 +152,23 @@ def setup_features(dataRaw, label='flux', notFeatures=[], pipeline=None, verbose
     
     if verbose: start = time()
     
-    labels_scaled     = labels# label_scaler.fit_transform(labels[:,None]).ravel() if label_scaler   is not None else labels
+    # labels_scaled     = labels# label_scaler.fit_transform(labels[:,None]).ravel() if label_scaler   is not None else labels
     features_trnsfrmd = pipeline.fit_transform(features) if pipeline is not None else features
     
     if verbose: print('took {} seconds'.format(time() - start))
     
+    collection = features_trnsfrmd, labels
+    
     if returnAll == True:
-        return features_trnsfrmd, dataRaw, pipeline
+        collection = features_trnsfrmd, labels, pipeline
     
     if returnAll == 'features':
-        return features_trnsfrmd
+        collection = features_trnsfrmd
     
     if returnAll == 'with raw data':
-        return features_trnsfrmd, dataRaw
+        collection.append(dataRaw)
     
-    return features_trnsfrmd
+    return collection
 
 def random_forest_wrapper(features, labels, n_trees, n_jobs, grad_boost=False, header='PCA', 
                             core_num=0, samp_num=0, loss='quantile', learning_rate=0.1, 
@@ -217,10 +239,9 @@ for key in flux_normalized:
 spitzerCalRawData['bmjd_err']       = np.median(0.5*np.diff(spitzerCalRawData['bmjd']))
 spitzerCalRawData['np_err']         = np.sqrt(spitzerCalRawData['yerr'])
 
-n_PLD   = len([key for key in spitzerCalRawData.keys() if 'pix' in key or 'pld' in key])
-
-resampling_inputs = ['flux', 'xpos', 'ypos', 'xfwhm', 'yfwhm', 'bg_flux', 'bmjd', 'np'] + ['pix{}'.format(k) for k in range(1,10)]
-resampling_errors = ['fluxerr', 'xerr', 'yerr', 'xerr', 'yerr', 'sigma_bg_flux', 'bmjd_err', 'np_err'] + ['fluxerr']*n_PLD
+for colname in spitzerCalRaw.columns:
+    if 'pix' in colname.lower() or 'pld' in colname.lower():
+        spitzerCalRawData[colname+'_err'] = spitzerCalRawData[colname] * spitzerCalRawData['fluxerr']
 
 start = time()
 print("Transforming Data ", end=" ")
@@ -284,10 +305,10 @@ if n_resamp == 0:
     print('No Resampling')
     spitzerCalResampled = pd.DataFrame({colname:spitzerCalRawData[colname] for colname, colerr in tqdm(zip(resampling_inputs, resampling_errors), total=len(resampling_inputs))})
     
-    features, spitzerCalRawData, pipe_fitted  = setup_features( dataRaw       = spitzerCalResampled, 
-                                                                pipeline      = pipe, 
-                                                                verbose       = verbose,
-                                                                returnAll     = True)
+    features, labels, pipe_fitted = setup_features( dataRaw       = spitzerCalResampled, 
+                                                    pipeline      = pipe, 
+                                                    verbose       = verbose,
+                                                    returnAll     = True)
     
     features = features.T[indices][:nImportantSamples].T if do_rfi else features
     
@@ -304,19 +325,11 @@ if n_resamp == 0:
 for k_samp in range(n_resamp):
     if k_samp == 0: print('Starting Resampling')
     
-    spitzerCalResampled = {}
-    for colname, colerr in tqdm(zip(resampling_inputs, resampling_errors), total=len(resampling_inputs)):
-        if 'pix' in colname:
-            spitzerCalResampled[colname]  = np.random.normal(spitzerCalRawData[colname], spitzerCalRawData[colname]*spitzerCalRawData['fluxerr'], size=(n_resamp,len(spitzerCalRawData))).flatten()
-        else:
-            spitzerCalResampled[colname]  = np.random.normal(spitzerCalRawData[colname], spitzerCalRawData[colerr], size=(n_resamp,len(spitzerCalRawData))).flatten()
-    
-    spitzerCalResampled = pd.DataFrame(spitzerCalResampled)
-    
-    features, spitzerCalRawData, pipe_fitted  = setup_features( dataRaw       = spitzerCalResampled, 
-                                                                pipeline      = pipe, 
-                                                                verbose       = verbose,
-                                                                returnAll     = True)
+    features, labels, spitzerCalRawData, pipe_fitted  = setup_features( dataRaw       = spitzerCalResampled, 
+                                                                        pipeline      = pipe, 
+                                                                        verbose       = verbose,
+                                                                        resample      = True:
+                                                                        returnAll     = True)
     
     features = features.T[indices][:nImportantSamples].T if do_rfi else features
     
