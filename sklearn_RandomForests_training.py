@@ -275,26 +275,23 @@ pca_cal_features_SSscaled, labels_SSscaled, spitzerCalRawData, \
 print(len(pca_cal_features_SSscaled))
 print('took {} seconds'.format(time() - start))
 
-# save_calibration_stacks = False
-# if 'spitzerCalLabelScaler_fit.save' not in files_in_directory and label_sclr is not None:
-#     save_calibration_stacks = True
-# if 'spitzerCalFeatureScaler_fit.save' not in files_in_directory and feature_sclr is not None:
-#     save_calibration_stacks = True
-# if 'spitzerCalFeaturePCA_trnsfrmr.save' not in files_in_directory and pca_trnsfrmr is not None:
-#     save_calibration_stacks = True
-#
-# if save_calibration_stacks:
-#     # *** For production level usage ***
-#     # All scaling and transformations must be done with respect to the calibration data distributions
-#     #   - That means to use .transform instead of .fit_transform
-#     #   - See `predict_with_scaled_transformer`
-#
-#     # Need to Scale the Labels based off of the calibration distribution
-#     joblib.dump(label_sclr  , 'spitzerCalLabelScaler_fit.save')
-#     # Need to Scale the Features based off of the calibration distribution
-#     joblib.dump(feature_sclr, 'spitzerCalFeatureScaler_fit.save')
-#     # Need to Transform the Scaled Features based off of the calibration distribution
-#     joblib.dump(pca_trnsfrmr, 'spitzerCalFeaturePCA_trnsfrmr.save')
+save_calibration_stacks = False
+if 'spitzerCalLabelScaler_fit.save'     not in files_in_directory and label_sclr   is not None: save_calibration_stacks = True
+if 'spitzerCalFeatureScaler_fit.save'   not in files_in_directory and feature_sclr is not None: save_calibration_stacks = True
+if 'spitzerCalFeaturePCA_trnsfrmr.save' not in files_in_directory and pca_trnsfrmr is not None: save_calibration_stacks = True
+
+if save_calibration_stacks:
+    # *** For production level usage ***
+    # All scaling and transformations must be done with respect to the calibration data distributions
+    #   - That means to use .transform instead of .fit_transform
+    #   - See `predict_with_scaled_transformer`
+
+    # Need to Scale the Labels based off of the calibration distribution
+    joblib.dump(label_sclr  , 'spitzerCalLabelScaler_fit.save')
+    # Need to Scale the Features based off of the calibration distribution
+    joblib.dump(feature_sclr, 'spitzerCalFeatureScaler_fit.save')
+    # Need to Transform the Scaled Features based off of the calibration distribution
+    joblib.dump(pca_trnsfrmr, 'spitzerCalFeaturePCA_trnsfrmr.save')
 
 if do_pca:
     print('Performing PCA Random Forest')
@@ -464,21 +461,21 @@ if do_ica:
     del randForest_ICA, randForest_ICA_oob, randForest_ICA_pred, randForest_ICA_Rsq
     _ = gc.collect()
 
-# **Importance Sampling**
-print('Computing Importances for RFI Random Forest')
-importances = np.loadtxt(importance_filename)
-indices     = np.argsort(importances)[::-1]
-
-cumsum = np.cumsum(importances[indices])
-nImportantSamples = np.argmax(cumsum >= 0.95) + 1
-
-# **Random Forest Pretrained Random Forest Approach**
-rfi_cal_feature_set = features_SSscaled.T[indices][:nImportantSamples].T
-
 if do_rfi:
+    # **Importance Sampling**
+    print('Computing Importances for RFI Random Forest')
+    importances = np.loadtxt(importance_filename)
+    indices     = np.argsort(importances)[::-1]
+
+    cumsum = np.cumsum(importances[indices])
+    nImportantSamples = np.argmax(cumsum >= 0.95) + 1
+
+    # **Random Forest Pretrained Random Forest Approach**
+    rfi_cal_feature_set = features_SSscaled.T[indices][:nImportantSamples].T
+
     # for nComps in range(1,spitzerData.shape[1]):
     print('Performing RFI Random Forest')
-    
+
     randForest_RFI = RandomForestRegressor( n_estimators=nTrees, \
                                             n_jobs=-1, \
                                             criterion='mse', \
