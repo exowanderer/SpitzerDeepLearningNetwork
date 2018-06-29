@@ -89,24 +89,26 @@ def setup_features(dataRaw, label='flux', notFeatures=[],
 
     """
     
-    dataRaw   = pd.read_csv(filename) if isinstance(dataRaw,str) else pd.DataFrame(dataRaw) if isinstance(dataRaw, dict) else dataRaw if isinstance(dataRaw, pd.DataFrame)
+    dataRaw   = pd.read_csv(filename) if isinstance(dataRaw,str) \
+                                      else pd.DataFrame(dataRaw) if isinstance(dataRaw, dict) \
+                                      else dataRaw if isinstance(dataRaw, pd.DataFrame) else raise TypeError('The input must be a Pandas DataFrame or Dictionary with Equal Size Entries')
     
     # WHY IS THIS ALLOWED TO NOT HAVE PARENTHESES?
-    assert isinstance(dataRaw, pd.DataFrame), 'The input must be a Pandas DataFrame or Dictionary with Equal Size Entries'
+    # assert isinstance(dataRaw, pd.DataFrame), 'The input must be a Pandas DataFrame or Dictionary with Equal Size Entries'
     
     inputData = dataRaw.copy()
     
     # PLDpixels = pd.DataFrame({key:dataRaw[key] for key in dataRaw.columns if 'pix' in key})
-    pixCols = [colname for colname in inputData.columns if 'pix' in colname]
+    pixCols = [colname for colname in inputData.columns if 'pix' in colname.lower() or 'pld' in colname.lower()]
     
     PLDnorm             = np.sum(np.array(inputData[pixCols]),axis=1)
     inputData[pixCols]  = (np.array(inputData[pixCols]).T / PLDnorm).T
     
-    # Overwrite the PLDpixels entries with the normalized version
-    for key in dataRaw.columns: 
-        if key in PLDpixels.columns:
-            inputData[key] = PLDpixels[key]
-    
+    # # Overwrite the PLDpixels entries with the normalized version
+    # for key in dataRaw.columns:
+    #     if key in PLDpixels.columns:
+    #         inputData[key] = PLDpixels[key]
+    #
     # Assign the labels
     labels          = inputData[label].values
     
