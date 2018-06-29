@@ -201,19 +201,19 @@ def random_forest_wrapper(features, labels, n_trees, n_jobs, grad_boost=False, h
     
     rgr.fit(features, labels)
     
-    rgr_oob = r2_score(testY, randForest.predict(testX)) if grad_boost else randForest.oob_score_ 
-    rgr_Rsq = r2_score(labels_, randForest.predict(features_))
+    rgr_oob = r2_score(testY, rgr.predict(testX)) if grad_boost else rgr.oob_score_ 
+    rgr_Rsq = r2_score(labels_, rgr.predict(features_))
     
     test_label = {True:'Test R^2', False:'OOB'}
     
     if verbose: print('{} Pretrained Random Forest:\n\t{} Score: \
                        {:.3f}%\n\tTrain R^2 score: {:.3f}%\
                        \n\tRuntime:   {:.3f} seconds'.format(header, test_label[grad_boost], 
-                                                              randForest_oob*100, randForest_Rsq*100, time()-start))
+                                                              rgr_oob*100, rgr_Rsq*100, time()-start))
     
-    joblib.dump(randForest, 'randForest_{}_approach_{}trees_{}resamp_{}core.save'.format(header, n_trees, samp_num, core_num))
+    joblib.dump(rgr, 'randForest_{}_approach_{}trees_{}resamp_{}core.save'.format(header, n_trees, samp_num, core_num))
     
-    if full_output: return randForest
+    if full_output: return rgr
 
 if n_jobs == 1: print('WARNING: You are only using 1 core!')
 
