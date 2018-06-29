@@ -21,6 +21,8 @@ do_gbr  = args['do_gbr']
 pdb_stop= args['pdb_stop']
 n_jobs  = args['n_jobs']
 
+if n_jobs == 1: print('WARNING: You are only using 1 core!')
+
 # Check if requested to complete more than one operatiion
 #   if so
 need_gc = sum([args[key] for key in args.keys() if 'do_' in key]) > 1
