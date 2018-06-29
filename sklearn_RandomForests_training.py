@@ -2,12 +2,13 @@ from argparse import ArgumentParser
 ap = ArgumentParser()
 ap.add_argument('-ns' , '--n_resamp', required=True , type=int , default=0    , help="Number of resamples to perform (GBR=1; No Resamp=0)")
 ap.add_argument('-nt' , '--n_trees' , required=True , type=int , default=100  , help="Number of trees in the forest")
+ap.add_argument('-c'  , '--core'    , required=False, type=int , default=0    , help="Which Core to Use GBR only Uses 1 Core at a time.")
 ap.add_argument('-std', '--do_std'  , required=False, type=bool, default=False, help="Use Standard Random Forest Regression")
 ap.add_argument('-pca', '--do_pca'  , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with PCA preprocessing")
 ap.add_argument('-ica', '--do_ica'  , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with ICA preprocessing")
 ap.add_argument('-rfi', '--do_rfi'  , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with PCA preprocessing")
 ap.add_argument('-gbr', '--do_gbr'  , required=False, type=bool, default=False, help="Use Gradient Boosting Regression with PCA preprocessing")
-ap.add_argument('-c'  , '--core'    , required=False, type=int , default=0    , help="Which Core to Use GBR only Uses 1 Core at a time.")
+ap.add_argument('-pdb', '--do_pdb'  , required=False, type=bool, default=False, help="Stop the trace at the end with pdb.set_trace()")
 args = vars(ap.parse_args())
 
 do_std  = args['do_std']
@@ -15,6 +16,7 @@ do_pca  = args['do_pca']
 do_ica  = args['do_ica']
 do_rfi  = args['do_rfi']
 do_gbr  = args['do_gbr']
+do_pdb  = args['do_pdb']
 
 importance_filename = 'randForest_STD_feature_importances.txt'
 if do_rfi and not len(glob(importance_filename)): do_std = True
@@ -78,7 +80,7 @@ def setup_features(dataRaw, label='flux', notFeatures=[], transformer=PCA(whiten
     inputData = dataRaw.copy()
     
     PLDpixels = pd.DataFrame({key:dataRaw[key] for key in dataRaw.columns if 'pix' in key})
-    print(PLDpixels.shape, PLDpixels.columns)
+    print(''.format(PLDpixels.shape, PLDpixels.columns))
     # PLDpixels     = {}
     # for key in dataRaw.columns.values:
     #     if 'pix' in key:
@@ -588,4 +590,4 @@ if do_rfi_ica:
     del randForest_RFI_ICA, randForest_RFI_ICA_oob, randForest_RFI_ICA_pred, randForest_RFI_ICA_Rsq
     _ = gc.collect()
 
-pdb.set_trace()
+if do_pdb: pdb.set_trace()
