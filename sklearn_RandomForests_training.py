@@ -262,12 +262,21 @@ pca_cal_features_SSscaled, labels_SSscaled, spitzerCalRawData, \
                                                             label_scaler  = None,
                                                             verbose       = False,
                                                             returnAll     = True)
+
 print(len(pca_cal_features_SSscaled))
 print('took {} seconds'.format(time() - start))
 
-label_sclr_save_name    = 'spitzerCalLabelScaler_{}resamp_fit.save'.format(n_resamp)
-feature_sclr_save_name  = 'spitzerCalFeatureScaler_{}resamp_fit.save'.format(n_resamp)
-pca_trnsfrmr_save_name  = 'spitzerCalFeaturePCA_{}resamp_trnsfrmr.save'.format(n_resamp)
+if 'core' not in args.keys():
+    from glob import glob
+    existing_saves = glob('randForest_GBR_PCA_approach_{}trees_{}resamp_*core.save'.format(nTrees, n_resamp))
+    core_nums = []
+    for fname in existing_saves:
+        core_nums.append(fname.split('randForest_GBR_PCA_approach_{}trees_{}resamp_'.format(nTrees, n_resamp))[-1].split('core.save')[0])
+    core = max(core_nums) + 1
+
+label_sclr_save_name    = 'spitzerCalLabelScaler_fit_{}resamp_{}core.save'.format(n_resamp, core))
+feature_sclr_save_name  = 'spitzerCalFeatureScaler_fit_{}resamp_{}core.save'.format(n_resamp, core))
+pca_trnsfrmr_save_name  = 'spitzerCalFeaturePCA_trnsfrmr_{}resamp_{}core.save'.format(n_resamp, core))
 
 save_calibration_stacks = False
 if label_sclr_save_name   not in files_in_directory and label_sclr   is not None: save_calibration_stacks = True
@@ -364,15 +373,7 @@ if do_gbr:
     print('PCA Pretrained Random Forest:\n\tTrain R^2 Score: {:.3f}%\n\tTest R^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(
                     randForest_PCA_GBR_Rsq_train*100, randForest_PCA_GBR_Rsq_test*100, time()-start))
     
-    if 'core' not in args.keys():
-        from glob import glob
-        existing_saves = glob('randForest_GBR_PCA_approach_{}trees_{}resamp_*core.save'.format(nTrees, n_resamp))
-        core_nums = []
-        for fname in existing_saves:
-            core_nums.append(fname.split('randForest_GBR_PCA_approach_{}trees_{}resamp_'.format(nTrees, n_resamp))[-1].split('core.save')[0])
-        core = max(core_nums) + 1
-    
-    joblib.dump(randForest_PCA_GBR, 'randForest_GBR_PCA_approach_{}trees_{}resamp_{}core.save'.format(nTrees, n_resamp, args['core']))
+    joblib.dump(randForest_PCA_GBR, 'randForest_GBR_PCA_approach_{}trees_{}resamp_{}core.save'.format(nTrees, n_resamp, core))
     
     if need_gc:
         del randForest_PCA, randForest_PCA_pred
@@ -535,14 +536,14 @@ if do_rfi_pca:
 
     start=time()
     randForest_RFI_PCA.fit(pca_rfi_cal_feature_set, labels_SSscaled)
-
+    
     randForest_RFI_PCA_oob = randForest_RFI_PCA.oob_score_
     randForest_RFI_PCA_pred= randForest_RFI_PCA.predict(pca_rfi_cal_feature_set)
     randForest_RFI_PCA_Rsq = r2_score(labels_SSscaled, randForest_RFI_PCA_pred)
-
+    
     print('RFI Pretrained with PCA Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(
         randForest_RFI_PCA_oob*100, randForest_RFI_PCA_Rsq*100, time()-start))
-
+    
     joblib.dump(randForest_RFI_PCA, 'randForest_RFI_PCA_approach_{}trees_{}resamp.save'.format(nTrees, n_resamp))
     
     if need_gc:
@@ -592,5 +593,5 @@ if do_rfi_ica:
         del randForest_RFI_ICA, randForest_RFI_ICA_oob, randForest_RFI_ICA_pred, randForest_RFI_ICA_Rsq
         gc.collect();
 
-print('\n\nFull Operation took {} minutes'.format((time() - start0)//60))
+print('\n\nFull Operation took {:.2f} minutes'.format((time() - start0)/60))
 if pdb_stop: pdb.set_trace()
