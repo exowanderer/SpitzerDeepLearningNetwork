@@ -274,9 +274,9 @@ if 'core' not in args.keys():
         core_nums.append(fname.split('randForest_GBR_PCA_approach_{}trees_{}resamp_'.format(nTrees, n_resamp))[-1].split('core.save')[0])
     core = max(core_nums) + 1
 
-label_sclr_save_name    = 'spitzerCalLabelScaler_fit_{}resamp_{}core.save'.format(n_resamp, core))
-feature_sclr_save_name  = 'spitzerCalFeatureScaler_fit_{}resamp_{}core.save'.format(n_resamp, core))
-pca_trnsfrmr_save_name  = 'spitzerCalFeaturePCA_trnsfrmr_{}resamp_{}core.save'.format(n_resamp, core))
+label_sclr_save_name    = 'spitzerCalLabelScaler_fit_{}resamp_{}core.save'.format(n_resamp, core)
+feature_sclr_save_name  = 'spitzerCalFeatureScaler_fit_{}resamp_{}core.save'.format(n_resamp, core)
+pca_trnsfrmr_save_name  = 'spitzerCalFeaturePCA_trnsfrmr_{}resamp_{}core.save'.format(n_resamp, core)
 
 save_calibration_stacks = False
 if label_sclr_save_name   not in files_in_directory and label_sclr   is not None: save_calibration_stacks = True
