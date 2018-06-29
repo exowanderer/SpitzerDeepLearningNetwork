@@ -89,7 +89,7 @@ def setup_features(dataRaw, label='flux', notFeatures=[], pipeline=None, verbose
             label_scaler   (str): The second parameter.
             feature_scaler (str): The second parameter.
         Returns:
-            features_scaled_transformed, labels_scaled
+            features_transformed, labels_scaled
 
         .. _PEP 484:
             https://github.com/ExoWanderer/
@@ -133,7 +133,7 @@ def setup_features(dataRaw, label='flux', notFeatures=[], pipeline=None, verbose
     if verbose: start = time()
     
     labels_scaled     = labels# label_scaler.fit_transform(labels[:,None]).ravel() if label_scaler   is not None else labels
-    features_trnsfrmd = pipeline.fit_transform(features_scaled) if pipeline is not None else features
+    features_trnsfrmd = pipeline.fit_transform(features) if pipeline is not None else features
     
     if verbose: print('took {} seconds'.format(time() - start))
     
@@ -347,7 +347,7 @@ def predict_with_scaled_transformer(dataRaw, notFeatures=None, transformer=None,
             label_scaler   (str): The second parameter.
             feature_scaler (str): The second parameter.
         Returns:
-            features_scaled_transformed, labels_scaled
+            features_transformed, labels_scaled
 
         .. _PEP 484:
             https://github.com/ExoWanderer/
