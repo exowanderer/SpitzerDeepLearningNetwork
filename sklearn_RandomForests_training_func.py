@@ -75,8 +75,7 @@ from glob                     import glob
 from time import time
 start0 = time()
 
-def setup_features(dataRaw, label='flux', notFeatures=[], 
-                    pipeline=None, verbose=True, returnAll=None):
+def setup_features(dataRaw, label='flux', notFeatures=[], pipeline=None, verbose=False, returnAll=None):
     
     """Example function with types documented in the docstring.
 
@@ -86,7 +85,7 @@ def setup_features(dataRaw, label='flux', notFeatures=[],
         Args:
             features  (nD-array): Array of input raw features.
             labels    (1D-array): The second parameter.
-            transformer    (int): The first parameter.
+            pipeline       (int): The first parameter.
             label_scaler   (str): The second parameter.
             feature_scaler (str): The second parameter.
         Returns:
@@ -129,12 +128,12 @@ def setup_features(dataRaw, label='flux', notFeatures=[],
     feature_columns = inputData.drop(notFeatures,axis=1).columns.values
     features        = inputData.drop(notFeatures,axis=1).values
     
-    print('Shape of Features Array is', features.shape) if verbose else None
+    if verbose: print('Shape of Features Array is', features.shape)
     
     if verbose: start = time()
     
     labels_scaled     = labels# label_scaler.fit_transform(labels[:,None]).ravel() if label_scaler   is not None else labels
-    features_trnsfrmd = pipeline.fit_transform(features_scaled) if transformer is not None else features
+    features_trnsfrmd = pipeline.fit_transform(features_scaled) if pipeline is not None else features
     
     if verbose: print('took {} seconds'.format(time() - start))
     
@@ -164,7 +163,7 @@ def random_forest_wrapper(features, labels, n_trees, n_jobs, grad_boost=False, h
                                         learning_rate = learning_rate, 
                                         subsample     = subsample    , 
                                         warm_start    = True         ,
-                                        verbose       = True         )
+                                        verbose       = verbose      )
         
         features, testX, labels, testY  = train_test_split(features_, labels_, test_size=0.25)
     else: 
@@ -172,11 +171,11 @@ def random_forest_wrapper(features, labels, n_trees, n_jobs, grad_boost=False, h
                                         n_jobs        = n_jobs       ,
                                         oob_score     = True         ,
                                         warm_start    = True         ,
-                                        verbose       = True         )
+                                        verbose       = verbose      )
     
-    print('Feature Shape: {}\nLabel Shape: {}'.format(features.shape, labels.shape))
+    if verbose: print('Feature Shape: {}\nLabel Shape: {}'.format(features.shape, labels.shape))
     
-    start=time()
+    if verbose: start=time()
     rgr.fit(pca_cal_features_SSscaled, labels_SSscaled)
     
     rgr_oob = r2_score(testY, randForest.predict(testX)) if grad_boost else randForest.oob_score_ 
@@ -184,10 +183,10 @@ def random_forest_wrapper(features, labels, n_trees, n_jobs, grad_boost=False, h
     
     test_label = {True:'Test R^2', False:'OOB'}
     
-    print('{} Pretrained Random Forest:\n\t{} Score: \
-                  {:.3f}%\n\tTrain R^2 score: {:.3f}%\
-                  \n\tRuntime:   {:.3f} seconds'.format(header, test_label[grad_boost], 
-                                                          randForest_oob*100, randForest_Rsq*100, time()-start))
+    if verbose: print('{} Pretrained Random Forest:\n\t{} Score: \
+                       {:.3f}%\n\tTrain R^2 score: {:.3f}%\
+                       \n\tRuntime:   {:.3f} seconds'.format(header, test_label[grad_boost], 
+                                                              randForest_oob*100, randForest_Rsq*100, time()-start))
     
     joblib.dump(randForest, 'randForest_{}_approach_{}trees_{}resamp_{}core.save'.format(header, n_trees, samp_num, core_num))
     
@@ -247,7 +246,7 @@ if do_ica:
 pipe  = Pipeline(operations)
 
 # features, spitzerCalRawData, pipe_fitted  = setup_features( dataRaw       = spitzerCalResampled,
-#                                                             transformer   = pipe,
+#                                                             pipeline      = pipe,
 #                                                             verbose       = verbose,
 #                                                             returnAll     = True)
 
@@ -286,7 +285,7 @@ if n_resamp == 0:
     spitzerCalResampled = pd.DataFrame({colname:spitzerCalRawData[colname] for colname, colerr in tqdm(zip(resampling_inputs, resampling_errors), total=len(resampling_inputs))})
     
     features, spitzerCalRawData, pipe_fitted  = setup_features( dataRaw       = spitzerCalResampled, 
-                                                                transformer   = pipe, 
+                                                                pipeline      = pipe, 
                                                                 verbose       = verbose,
                                                                 returnAll     = True)
     
@@ -315,7 +314,7 @@ for k_samp in range(n_resamp):
     spitzerCalResampled = pd.DataFrame(spitzerCalResampled)
     
     features, spitzerCalRawData, pipe_fitted  = setup_features( dataRaw       = spitzerCalResampled, 
-                                                                transformer   = pipe, 
+                                                                pipeline      = pipe, 
                                                                 verbose       = verbose,
                                                                 returnAll     = True)
     
