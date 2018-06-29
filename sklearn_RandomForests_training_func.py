@@ -20,12 +20,7 @@ do_rfi  = args['do_rfi']
 do_gbr  = args['do_gbr']
 pdb_stop= args['pdb_stop']
 n_jobs  = args['n_jobs']
-
-if n_jobs == 1: print('WARNING: You are only using 1 core!')
-
-# Check if requested to complete more than one operatiion
-#   if so
-need_gc = sum([args[key] for key in args.keys() if 'do_' in key]) > 1
+nTrees  = args['n_trees']
 
 import pandas as pd
 import numpy as np
@@ -191,6 +186,13 @@ def predict_with_scaled_transformer(dataRaw, notFeatures=None, transformer=None,
     
     return features_trnsfrmd, labels_scaled
 
+
+if n_jobs == 1: print('WARNING: You are only using 1 core!')
+
+# Check if requested to complete more than one operatiion
+#   if so delete old instances
+need_gc = sum([args[key] for key in args.keys() if 'do_' in key]) > 1
+
 files_in_directory = glob('./*')
 
 # ## Load CSVs data
@@ -227,17 +229,6 @@ else:
     print('No Resampling')
     spitzerCalResampled = pd.DataFrame({colname:spitzerCalRawData[colname] for colname, colerr in tqdm(zip(resampling_inputs, resampling_errors), total=len(resampling_inputs))})
 
-features_SSscaled, labels_SSscaled = setup_features(dataRaw       = spitzerCalResampled,
-                                                    notFeatures   = [],#spitzerCalNotFeatures,
-                                                    transformer   = PCA(whiten=True), # THIS IS PCA-RF -- NOT DEFAULT
-                                                    feature_scaler= StandardScaler(),
-                                                    label_scaler  = None,
-                                                    verbose       = True,
-                                                    returnAll     = None)
-
-pca_cal_features_SSscaled = features_SSscaled
-
-nTrees = args['n_trees']
 
 if do_pca: transformer   = PCA(whiten=True)
 if do_ica: transformer   = FastICA()
@@ -249,7 +240,6 @@ start = time()
 print('Grabbing PCA', end=" ")
 pca_cal_features_SSscaled, labels_SSscaled, spitzerCalRawData, \
     pca_trnsfrmr, label_sclr, feature_sclr = setup_features(dataRaw       = spitzerCalResampled, 
-                                                            notFeatures   = [],#spitzerCalNotFeatures, 
                                                             transformer   = transformer, 
                                                             feature_scaler= feature_scaler,
                                                             label_scaler  = label_scaler,
