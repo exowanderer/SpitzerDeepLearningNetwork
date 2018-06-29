@@ -317,9 +317,10 @@ if do_pca:
     print('PCA Pretrained Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(randForest_PCA_oob*100, randForest_PCA_Rsq*100, time()-start))
     
     joblib.dump(randForest_PCA, 'randForest_PCA_approach_{}trees_{}resamples.save'.format(nTrees, n_resamp))
-    
-    # del randForest_PCA, randForest_PCA_pred
-    # _ = gc.collect()
+
+    if need_gc:
+        del randForest_PCA, randForest_PCA_pred
+        gc.collect();
 
 if do_gbr:
     
@@ -372,8 +373,9 @@ if do_gbr:
     
     joblib.dump(randForest_PCA_GBR, 'randForest_GBR_PCA_approach_{}trees_{}resamples_{}core.save'.format(nTrees, n_resamp, args['core']))
     
-    del randForest_PCA, randForest_PCA_pred
-    _ = gc.collect()
+    if need_gc:
+        del randForest_PCA, randForest_PCA_pred
+        gc.collect();
 
 if do_std:
     # **Standard Random Forest Approach**
@@ -408,10 +410,10 @@ if do_std:
     print('Standard Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(randForest_STD_oob*100, randForest_STD_Rsq*100, time()-start))
 
     joblib.dump(randForest_STD, 'randForest_STD_approach_{}trees_{}resamples.save'.format(nTrees, n_resamp))
-    del randForest_STD, randForest_STD_pred
-    _ = gc.collect()
-
-
+    
+    if need_gc:
+        del randForest_STD, randForest_STD_pred
+        gc.collect();
 
 if do_ica:
     # for nComps in range(1,spitzerData.shape[1]):
@@ -453,8 +455,10 @@ if do_ica:
     print('ICA Pretrained Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(randForest_ICA_oob*100, randForest_ICA_Rsq*100, time()-start))
     
     joblib.dump(randForest_ICA, 'randForest_ICA_approach_{}trees_{}resamples.save'.format(nTrees, n_resamp))
-    del randForest_ICA, randForest_ICA_oob, randForest_ICA_pred, randForest_ICA_Rsq
-    _ = gc.collect()
+    
+    if need_gc:
+        del randForest_ICA, randForest_ICA_oob, randForest_ICA_pred, randForest_ICA_Rsq
+        gc.collect();
 
 if do_rfi:
     # **Importance Sampling**
@@ -496,8 +500,10 @@ if do_rfi:
     print('RFI Pretrained Random Forest:\n\tOOB Score: {:.3f}%\n\tR^2 score: {:.3f}%\n\tRuntime:   {:.3f} seconds'.format(randForest_RFI_oob*100, randForest_RFI_Rsq*100, time()-start))
 
     joblib.dump(randForest_RFI, 'randForest_RFI_approach_{}trees_{}resamples.save'.format(nTrees, n_resamp))
-    del randForest_RFI, randForest_RFI_oob, randForest_RFI_pred, randForest_RFI_Rsq
-    _ = gc.collect()
+    
+    if need_gc:
+        del randForest_RFI, randForest_RFI_oob, randForest_RFI_pred, randForest_RFI_Rsq
+        gc.collect();
 
 do_rfi_pca=False
 if do_rfi_pca:
@@ -537,9 +543,10 @@ if do_rfi_pca:
         randForest_RFI_PCA_oob*100, randForest_RFI_PCA_Rsq*100, time()-start))
 
     joblib.dump(randForest_RFI_PCA, 'randForest_RFI_PCA_approach_{}trees_{}resamples.save'.format(nTrees, n_resamp))
-
-    del randForest_RFI_PCA, randForest_RFI_PCA_oob, randForest_RFI_PCA_pred, randForest_RFI_PCA_Rsq
-    _ = gc.collect()
+    
+    if need_gc:
+        del randForest_RFI_PCA, randForest_RFI_PCA_oob, randForest_RFI_PCA_pred, randForest_RFI_PCA_Rsq
+        gc.collect();
 
 do_rfi_ica = False
 if do_rfi_ica:
@@ -579,8 +586,9 @@ if do_rfi_ica:
         randForest_RFI_ICA_oob*100, randForest_RFI_ICA_Rsq*100, time()-start))
 
     joblib.dump(randForest_RFI_ICA, 'randForest_RFI_ICA_approach_{}trees_{}resamples.save'.format(nTrees, n_resamp))
-
-    del randForest_RFI_ICA, randForest_RFI_ICA_oob, randForest_RFI_ICA_pred, randForest_RFI_ICA_Rsq
-    _ = gc.collect()
+    
+    if need_gc:
+        del randForest_RFI_ICA, randForest_RFI_ICA_oob, randForest_RFI_ICA_pred, randForest_RFI_ICA_Rsq
+        gc.collect();
 
 if pdb_stop: pdb.set_trace()
