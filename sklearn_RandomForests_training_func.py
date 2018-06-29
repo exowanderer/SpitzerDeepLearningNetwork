@@ -172,7 +172,7 @@ def setup_features(dataRaw, label='flux', notFeatures=[], pipeline=None, verbose
 
 def random_forest_wrapper(features, labels, n_trees, n_jobs, grad_boost=False, header='PCA', 
                             core_num=0, samp_num=0, loss='quantile', learning_rate=0.1, 
-                            subsample=1.0, full_output=False):
+                            subsample=1.0, full_output=False, verbose=False):
     
     print('Performing {} Random Forest'.format(header))
     
@@ -316,7 +316,7 @@ if n_resamp == 0:
     save_calibration_stacks = pipeline_save_name not in files_in_directory and pipe_fitted is not None
     
     # Need to Transform the Scaled Features based off of the calibration distribution
-    if save_calibration_stacks: joblib.dump(pipe_fitted, pipeline_save_name)        
+    if save_calibration_stacks: joblib.dump(pipe_fitted, pipeline_save_name)
 
 for k_samp in range(n_resamp):
     if k_samp == 0: print('Starting Resampling')
