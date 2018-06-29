@@ -8,7 +8,7 @@ ap.add_argument('-pca', '--do_pca'  , required=False, type=bool, default=False, 
 ap.add_argument('-ica', '--do_ica'  , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with ICA preprocessing")
 ap.add_argument('-rfi', '--do_rfi'  , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with PCA preprocessing")
 ap.add_argument('-gbr', '--do_gbr'  , required=False, type=bool, default=False, help="Use Gradient Boosting Regression with PCA preprocessing")
-ap.add_argument('-pdb', '--do_pdb'  , required=False, type=bool, default=False, help="Stop the trace at the end with pdb.set_trace()")
+ap.add_argument('-pdb', '--pdb_stop'  , required=False, type=bool, default=False, help="Stop the trace at the end with pdb.set_trace()")
 args = vars(ap.parse_args())
 
 do_std  = args['do_std']
@@ -16,7 +16,11 @@ do_pca  = args['do_pca']
 do_ica  = args['do_ica']
 do_rfi  = args['do_rfi']
 do_gbr  = args['do_gbr']
-do_pdb  = args['do_pdb']
+pdb_stop= args['pdb_stop']
+
+# Check if requested to complete more than one operatiion
+#   if so
+need_gc = sum([args[key] for key in args.keys() if 'do_' in key]) > 1
 
 importance_filename = 'randForest_STD_feature_importances.txt'
 if do_rfi and not len(glob(importance_filename)): do_std = True
@@ -187,19 +191,19 @@ def predict_with_scaled_transformer(dataRaw, notFeatures=None, transformer=None,
 
 files_in_directory = glob('./*')
 
-nRF_modes       = 6
-perform_rf_mode = np.ones(nRF_modes, dtype=bool)
-
-set_of_save_files  = ['./randForest_STD_approach.save', 
-                      './randForest_PCA_approach.save', 
-                      './randForest_ICA_approach.save', 
-                      './randForest_RFI_approach.save', 
-                      './randForest_RFI_PCA_approach.save', 
-                      './randForest_RFI_ICA_approach.save']
-
-for k, sfile in enumerate(set_of_save_files):
-    if sfile in files_in_directory:
-        perform_rf_mode[k] = False
+# nRF_modes       = 6
+# perform_rf_mode = np.ones(nRF_modes, dtype=bool)
+#
+# set_of_save_files  = ['./randForest_STD_approach.save',
+#                       './randForest_PCA_approach.save',
+#                       './randForest_ICA_approach.save',
+#                       './randForest_RFI_approach.save',
+#                       './randForest_RFI_PCA_approach.save',
+#                       './randForest_RFI_ICA_approach.save']
+#
+# for k, sfile in enumerate(set_of_save_files):
+#     if sfile in files_in_directory:
+#         perform_rf_mode[k] = False
 
 # ## Load CSVs data
 spitzerCalNotFeatures = ['flux', 'fluxerr', 'dn_peak', 'xycov', 't_cernox', 'xerr', 'yerr', 'sigma_bg_flux']
@@ -234,24 +238,7 @@ if n_resamp > 0:
 else:
     print('No Resampling')
     spitzerCalResampled = pd.DataFrame({colname:spitzerCalRawData[colname] for colname, colerr in tqdm(zip(resampling_inputs, resampling_errors), total=len(resampling_inputs))})
-    # for colname, colerr in tqdm(zip(resampling_inputs, resampling_errors), total=len(resampling_inputs)):
-    #     spitzerCalResampled[colname]  = spitzerCalRawData[colname]
 
-# spitzerCalResampled['flux']   = np.random.normal(spitzerCalRawData['flux']   , spitzerCalRawData['fluxerr']      , size=(n_resamp,len(spitzerCalRawData))).flatten()
-# spitzerCalResampled['xpos']   = np.random.normal(spitzerCalRawData['xpos']   , spitzerCalRawData['xerr']         , size=(n_resamp,len(spitzerCalRawData))).flatten()
-# spitzerCalResampled['ypos']   = np.random.normal(spitzerCalRawData['ypos']   , spitzerCalRawData['yerr']         , size=(n_resamp,len(spitzerCalRawData))).flatten()
-# spitzerCalResampled['xfwhm']  = np.random.normal(spitzerCalRawData['xfwhm']  , spitzerCalRawData['xerr']         , size=(n_resamp,len(spitzerCalRawData))).flatten()
-# spitzerCalResampled['yfwhm']  = np.random.normal(spitzerCalRawData['yfwhm']  , spitzerCalRawData['yerr']         , size=(n_resamp,len(spitzerCalRawData))).flatten()
-# spitzerCalResampled['bg_flux']= np.random.normal(spitzerCalRawData['bg_flux'], spitzerCalRawData['sigma_bg_flux'], size=(n_resamp,len(spitzerCalRawData))).flatten()
-# spitzerCalResampled['bmjd']   = np.random.normal(spitzerCalRawData['bmjd']   , spitzerCalRawData['bmjd_err']    , size=(n_resamp,len(spitzerCalRawData))).flatten()
-# spitzerCalResampled['np']     = np.random.normal(spitzerCalRawData['np']     , spitzerCalRawData['np_err']       , size=(n_resamp,len(spitzerCalRawData))).flatten()
-
-# for colname in tqdm(['pix{}'.format(k) for k in range(1,10)]):
-#     spitzerCalResampled[colname]  = np.random.normal(spitzerCalRawData[colname], spitzerCalRawData[colname]*spitzerCalRawData['fluxerr'], size=(n_resamp,len(spitzerCalRawData))).flatten()
-
-# spitzerCalResampled = pd.DataFrame(spitzerCalResampled)
-
-# features_SSscaled, labels_SSscaled = setup_features(dataRaw       = spitzerCalResampled,
 features_SSscaled, labels_SSscaled = setup_features(dataRaw       = spitzerCalResampled,
                                                     notFeatures   = [],#spitzerCalNotFeatures,
                                                     transformer   = PCA(whiten=True), # THIS IS PCA-RF -- NOT DEFAULT
@@ -277,21 +264,27 @@ pca_cal_features_SSscaled, labels_SSscaled, spitzerCalRawData, \
 print(len(pca_cal_features_SSscaled))
 print('took {} seconds'.format(time() - start))
 
+label_sclr_save_name    = 'spitzerCalLabelScaler_{}resamp_fit.save'.format(n_resamp)
+feature_sclr_save_name  = 'spitzerCalFeatureScaler_{}resamp_fit.save'.format(n_resamp)
+pca_trnsfrmr_save_name  = 'spitzerCalFeaturePCA_{}resamp_trnsfrmr.save'.format(n_resamp)
+
 save_calibration_stacks = False
-if 'spitzerCalLabelScaler_fit.save'     not in files_in_directory and label_sclr   is not None: save_calibration_stacks = True
-if 'spitzerCalFeatureScaler_fit.save'   not in files_in_directory and feature_sclr is not None: save_calibration_stacks = True
-if 'spitzerCalFeaturePCA_trnsfrmr.save' not in files_in_directory and pca_trnsfrmr is not None: save_calibration_stacks = True
+if label_sclr_save_name   not in files_in_directory and label_sclr   is not None: save_calibration_stacks = True
+if feature_sclr_save_name not in files_in_directory and feature_sclr is not None: save_calibration_stacks = True
+if pca_trnsfrmr_save_name not in files_in_directory and pca_trnsfrmr is not None: save_calibration_stacks = True
 
 if save_calibration_stacks:
     # *** For production level usage ***
     # All scaling and transformations must be done with respect to the calibration data distributions
     #   - That means to use .transform instead of .fit_transform
     #   - See `predict_with_scaled_transformer`
-
+    
     # Need to Scale the Labels based off of the calibration distribution
     joblib.dump(label_sclr  , 'spitzerCalLabelScaler_fit.save')
+    
     # Need to Scale the Features based off of the calibration distribution
     joblib.dump(feature_sclr, 'spitzerCalFeatureScaler_fit.save')
+    
     # Need to Transform the Scaled Features based off of the calibration distribution
     joblib.dump(pca_trnsfrmr, 'spitzerCalFeaturePCA_trnsfrmr.save')
 
@@ -377,10 +370,10 @@ if do_gbr:
             core_nums.append(fname.split('randForest_GBR_PCA_approach_{}trees_{}resamples_'.format(nTrees, n_resamp))[-1].split('core.save')[0])
         core = max(core_nums) + 1
     
-    # joblib.dump(randForest_PCA_GBR, 'randForest_GBR_PCA_approach_{}trees_{}resamples_{}core.save'.format(nTrees, n_resamp, args['core']))
+    joblib.dump(randForest_PCA_GBR, 'randForest_GBR_PCA_approach_{}trees_{}resamples_{}core.save'.format(nTrees, n_resamp, args['core']))
     
-    # del randForest_PCA, randForest_PCA_pred
-    # _ = gc.collect()
+    del randForest_PCA, randForest_PCA_pred
+    _ = gc.collect()
 
 if do_std:
     # **Standard Random Forest Approach**
@@ -590,4 +583,4 @@ if do_rfi_ica:
     del randForest_RFI_ICA, randForest_RFI_ICA_oob, randForest_RFI_ICA_pred, randForest_RFI_ICA_Rsq
     _ = gc.collect()
 
-if do_pdb: pdb.set_trace()
+if pdb_stop: pdb.set_trace()
