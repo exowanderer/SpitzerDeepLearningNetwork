@@ -318,6 +318,7 @@ if n_resamp == 0:
     random_forest_wrapper(features, labels, n_trees, n_jobs, grad_boost=do_gbr, header=header, core_num=core, samp_num='no_', verbose=verbose)
     
     pipeline_save_name      = 'spitzerCalFeature_pipeline_trnsfrmr_no_resamp_{}core.save'.format(core)
+    print('Saving NO RESAMP Pipeline as {}'.format(pipeline_save_name))
     
     # Save the stack if the stack does not exist and the pipeline is not None
     save_calibration_stacks = pipeline_save_name not in files_in_directory and pipe_fitted is not None
@@ -340,6 +341,7 @@ for k_samp in tqdm(range(n_resamp),total=n_resamp):
     
     pipeline_save_name      = 'spitzerCalFeature_pipeline_trnsfrmr_{}resamp_{}core.save'.format(k_samp, core)
     
+    print('Saving SAMP {} Pipeline as {} on Core {}'.format(k_samp, pipeline_save_name, core))
     # Save the stack if the stack does not exist and the pipeline is not None
     save_calibration_stacks = pipeline_save_name not in files_in_directory and pipe_fitted is not None
     
