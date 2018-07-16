@@ -218,7 +218,9 @@ def random_forest_wrapper(features, labels, n_trees, n_jobs, grad_boost=False, h
                        \n\tRuntime:   {:.3f} seconds'.format(header, test_label[grad_boost], 
                                                               rgr_oob*100, rgr_Rsq*100, time()-start))
     
-    joblib.dump(rgr, 'randForest_{}_approach_{}trees_{}resamp_{}core.save'.format(header, n_trees, 'no_', core_num))
+    output_savename = 'randForest_{}_approach_{}trees_{}resamp_{}core.save'.format(header, n_trees, samp_num, core_num)
+    print('Storing New File to {}'.format(output_savename))
+    joblib.dump(rgr, output_savename)
     
     if full_output: return rgr
 
