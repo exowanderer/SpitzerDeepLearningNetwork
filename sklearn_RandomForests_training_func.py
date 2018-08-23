@@ -44,7 +44,7 @@ except Exception as e:
     do_pca      = False
     do_ica      = False
     do_rfi      = False
-    do_gbr      = False
+    do_gbr      = True
     do_pp       = True
     rand_state  = 42
     pdb_stop    = False
@@ -52,12 +52,12 @@ except Exception as e:
     sp_fname    = ''
     verbose     = True
 
-if do_gbr and n_resamp in [0,1]:
-    print("WARNING: Gradient Boosting can only use 1 core.")
-    print('\tInstead of resampling inside the function; call this package `n_resamp` times')
-    print('\t in `n_resamp` screens or terminals.')
-    print('\n**Forcing** `n_resamp = 1`')
-    n_resamp = 1
+# if do_gbr and n_resamp in [0,1]:
+#     print("WARNING: Gradient Boosting can only use 1 core.")
+#     print('\tInstead of resampling inside the function; call this package `n_resamp` times')
+#     print('\t in `n_resamp` screens or terminals.')
+#     print('\n**Forcing** `n_resamp = 1`')
+#     n_resamp = 1
 
 import pandas as pd
 import numpy as np
@@ -70,10 +70,12 @@ warnings.filterwarnings("ignore")
 from sklearn.model_selection  import train_test_split
 from sklearn.pipeline         import Pipeline
 from sklearn.preprocessing    import StandardScaler, MinMaxScaler, minmax_scale
-from sklearn.ensemble         import RandomForestRegressor, ExtraTreesRegressor, AdaBoostRegressor, GradientBoostingRegressor
+from sklearn.ensemble         import RandomForestRegressor, ExtraTreesRegressor#, AdaBoostRegressor, GradientBoostingRegressor
 from sklearn.decomposition    import PCA, FastICA
 from sklearn.externals        import joblib
 from sklearn.metrics          import r2_score
+
+import xgboost as xgb
 
 from tqdm import tqdm
 
@@ -187,12 +189,24 @@ def random_forest_wrapper(features, labels, n_trees, n_jobs, grad_boost=False, h
     labels_   = labels.copy()
     
     if grad_boost:
-        rgr = GradientBoostingRegressor(n_estimators  = n_trees      , 
-                                        loss          = loss         , 
-                                        learning_rate = learning_rate, 
-                                        subsample     = subsample    , 
-                                        warm_start    = True         ,
-                                        verbose       = verbose      )
+        # rgr = xgb.XGBRegressor( n_estimators  = n_trees      ,
+        #                         loss          = loss         ,
+        #                         learning_rate = learning_rate,
+        #                         subsample     = subsample    ,
+        #                         warm_start    = True         ,
+        #                         verbose       = verbose      )
+        
+        rgr = xgb.XGBRegressor( max_depth = max_depth, 
+                                learning_rate = learning_rate, 
+                                n_estimators = n_estimators, 
+                                silent = not verbose, 
+                                n_jobs = n_jobs)
+        
+        # objective='reg:linear', booster='gbtree', 
+        # gamma=0, min_child_weight=1, max_delta_step=0, subsample=1,
+        # colsample_bytree=1, colsample_bylevel=1, reg_alpha=0, reg_lambda=1,
+        # scale_pos_weight=1, base_score=0.5, random_state=0, seed=None,
+        # missing=None
         
         features, testX, labels, testY  = train_test_split(features_, labels_, test_size=0.25)
     else: 
