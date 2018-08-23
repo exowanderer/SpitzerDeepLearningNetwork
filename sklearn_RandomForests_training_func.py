@@ -181,7 +181,7 @@ def setup_features(dataRaw, label='flux', notFeatures=[], pipeline=None, verbose
 
 def random_forest_wrapper(features, labels, n_trees, n_jobs, grad_boost=False, header='PCA', 
                             core_num=0, samp_num=0, loss='quantile', learning_rate=0.1, 
-                            subsample=1.0, full_output=False, verbose=False):
+                            max_depth=3, subsample=1.0, full_output=False, verbose=False):
     
     print('Performing {} Random Forest'.format(header))
     
