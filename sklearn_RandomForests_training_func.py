@@ -198,7 +198,7 @@ def random_forest_wrapper(features, labels, n_trees, n_jobs, grad_boost=False, h
         
         rgr = xgb.XGBRegressor( max_depth = max_depth, 
                                 learning_rate = learning_rate, 
-                                n_estimators = n_estimators, 
+                                n_estimators = n_trees, 
                                 silent = not verbose, 
                                 n_jobs = n_jobs)
         
