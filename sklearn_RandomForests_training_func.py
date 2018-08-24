@@ -44,8 +44,8 @@ except Exception as e:
     do_pca      = False
     do_ica      = False
     do_rfi      = False
-    do_gbr      = True
-    do_pp       = True
+    do_gbr      = False
+    do_pp       = False
     rand_state  = 42
     pdb_stop    = False
     n_jobs      = -1
@@ -288,7 +288,7 @@ if do_ica:
     operations.append(('ica', FastICA(whiten=True)))
     header     += '_ICA'
 
-pipe  = Pipeline(operations)
+pipe  = Pipeline(operations) if len(operations) else None
 
 if do_rfi: 
     importance_filename = 'randForest_STD_feature_importances.txt'
