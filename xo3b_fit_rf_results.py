@@ -1,10 +1,10 @@
+from argprase  import ArgumentParser
 from batman    import TransitModel, TransitParams
 from exoparams import PlanetParams
 from functools import partial
 from lmfit     import Model, Parameters
 from pandas    import read_csv
 from pylab     import *;ion()
-from sys       import argv
 from time      import time
 
 from scipy.signal import medfilt
@@ -136,6 +136,8 @@ def batman_lmfit_model(times, period, tCenter, inc, aprs, edepth, tdepth, ecc, o
     
     return m_eclipse
 
+ap  = ArgumentParser()
+ap.add_argument('-f', '--filename', require=True, default='', help='Filename with Spitzer transit observation data.')
 # xo3b_filename = 'XO3_r46468096_STD_save.txt'
 xo3b_filename = 'XO3_r46468352_STD_save.txt' if len(argv) < 2 else argv[1]
 xo3b_rf       = read_csv(xo3b_filename)

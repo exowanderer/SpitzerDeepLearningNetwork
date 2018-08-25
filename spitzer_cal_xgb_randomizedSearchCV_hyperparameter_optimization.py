@@ -1,3 +1,9 @@
+import multiprocessing
+multiprocessing.set_start_method('forkserver')
+
+import os
+os.environ["OMP_NUM_THREADS"] = "1"  # or to whatever you want
+
 print('BEGIN BIG COPY PASTE ')
 # This section is for if/when I copy/paste the code into a ipython sesssion
 n_resamp    = 0
@@ -226,7 +232,7 @@ features, labels, pipe_fitted = setup_features( dataRaw       = spitzerCalRawDat
                                                 returnAll     = True)
 
 print('END OF BIG COPY PASTE')
-print('BEGIN NEW RandomizedSearchCV Section')
+print('BEGIN NEW HyperParameter Optimization.')
 
 from sklearn.model_selection import RandomizedSearchCV
 
@@ -250,11 +256,11 @@ verbose = True # for RSCV
 silent = True # for XGB
 random_state = 42
 
-max_depths = np.arange(1,20)
-n_estimators = np.array([base*10**power for base in [1,2,5] for power in np.arange(1,5)])
+max_depths = np.arange(2,15)
+n_estimators_s = np.array([base*10**power for base in [1,2,5] for power in np.arange(1,5)])
 learning_rates = np.array([base*10.**power for base in np.float32([1,2,5]) for power in np.arange(-4,0)])
 
-param_dict = dict(max_depth=max_depths, learning_rate=learning_rates, n_estimators=n_estimators)
+xgb_param_dict = dict(max_depth=max_depths, learning_rate=learning_rates, n_estimators=n_estimators_s)
 
 scoring = {'rmse': make_scorer(rmse, greater_is_better=False), 'r2':make_scorer(r2_score)} 
 
@@ -268,42 +274,57 @@ xgb_rgr = xgb.XGBRegressor( max_depth = max_depth,
                             silent = silent, 
                             n_jobs = n_jobs)
 
-do_rscv = False
-if do_rscv:
-    rscv = RandomizedSearchCV(xgb_rgr, param_dict, 
-                                n_iter = n_iters, 
-                                scoring = scoring, 
-                                n_jobs = n_jobs, 
-                                cv = cv, 
-                                verbose = verbose,
-                                random_state = random_state, 
-                                return_train_score = 'warn', 
-                                refit = False,
-                                pre_dispatch=1)
+# do_rscv = False
+# if do_rscv:
+#     rscv = RandomizedSearchCV(xgb_rgr, xgb_param_dict,
+#                                 n_iter = n_iters,
+#                                 scoring = scoring,
+#                                 n_jobs = n_jobs,
+#                                 cv = cv,
+#                                 verbose = verbose,
+#                                 random_state = random_state,
+#                                 return_train_score = 'warn',
+#                                 refit = False,
+#                                 pre_dispatch=1)
+#
+#     rscv.fit(features_, labels_)
+#
+#     joblib.dump(rscv, 'spitzer_cal_RSCV_fit_XGB_results.joblib.save')
 
-    rscv.fit(features_, labels_)
-    
-    joblib.dump(rscv, 'spitzer_cal_RSCV_fit_XGB_results.joblib.save')
+# if __name__ == '__main__':
+#
 
 do_tpot = True
 if do_tpot:
     from tpot import TPOTRegressor
+    
+    # from sklearn.metrics.scorer import make_scorer
+    # GiniScore_scorer = make_scorer(GiniScore, greater_is_better=True)
+    
     n_generations = 100
     population_size = 100
     
-    # param_dict['subsample'] = np.arange(0.05, 1.01, 0.05),
-    param_dict['min_child_weight'] = range(1, 21)
+    # xgb_param_dict['subsample'] = np.arange(0.05, 1.01, 0.05),
+    # xgb_param_dict['min_child_weight'] = range(1, 21)
     
-    regressor_config_dict = {'xgboost.XGBRegressor': param_dict}
-    scoring_ = 'r2'
-    tpot_rgr = tpot.TPOTRegressor(  generations=n_generations, population_size=population_size, 
-                                    scoring=scoring_, cv=cv, n_jobs=n_jobs,
-                                    random_state=random_state, config_dict=regressor_config_dict,
-                                    warm_start=True,
-                                    periodic_checkpoint_folder='./tpot_checkpoints/',
-                                    #, early_stop=None,
-                                    verbosity=3)
+    regressor_config_dict = {'xgboost.XGBRegressor': xgb_param_dict}
     
-    tpot_rgr.fit(features_, labels_)
+    tpot_rgr = TPOTRegressor(   generations = n_generations, 
+                                population_size = population_size, 
+                                cv = cv, 
+                                n_jobs = n_jobs,
+                                # scoring = 'r2', 
+                                # scoring = GiniScore_scorer, 
+                                random_state = random_state, 
+                                config_dict = regressor_config_dict,
+                                warm_start = True, 
+                                #random_state = 42, 
+                                periodic_checkpoint_folder = './tpot_checkpoints/',
+                                #, early_stop = None,
+                                verbosity = 3)
+    
+    # Check for any values that are actually integers
+    labels_[np.int32(labels_) == labels_] = labels_[np.int32(labels_) == labels_] + 1e-6
+    tpot_rgr.fit(np.array(features_), np.array(labels_))
     
     joblib.dump(tpot_rgr, 'spitzer_cal_TPOT_fit_XGB_results.joblib.save')
