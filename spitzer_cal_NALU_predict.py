@@ -260,6 +260,7 @@ random_state = 42
         This code has been specifically implemented with tensorflow.
         
         Code source: https://github.com/grananqvist/NALU-tf
+        Original paper: https://arxiv.org/abs/1808.00508 (Trask et al.)
 '''
 import numpy as np
 import tensorflow as tf
