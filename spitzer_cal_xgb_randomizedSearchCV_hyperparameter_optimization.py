@@ -2,7 +2,7 @@ import multiprocessing
 multiprocessing.set_start_method('forkserver')
 
 import os
-os.environ["OMP_NUM_THREADS"] = "1"  # or to whatever you want
+os.environ["OMP_NUM_THREADS"] = str(multiprocessing.cpu_count())  # or to whatever you want
 
 print('BEGIN BIG COPY PASTE ')
 # This section is for if/when I copy/paste the code into a ipython sesssion
@@ -248,20 +248,12 @@ pipe = None
 features_ = features.copy()
 labels_   = labels.copy()
 
-
 n_iters = 100
 n_jobs = -1
 cv = 10
 verbose = True # for RSCV
 silent = True # for XGB
 random_state = 42
-
-max_depths = np.arange(2,15)
-n_estimators_s = np.array([base*10**power for base in [1,2,5] for power in np.arange(1,5)])
-learning_rates = np.array([base*10.**power for base in np.float32([1,2,5]) for power in np.arange(-4,0)])
-
-xgb_param_dict = dict(max_depth=max_depths, learning_rate=learning_rates, n_estimators=n_estimators_s)
-
 scoring = {'rmse': make_scorer(rmse, greater_is_better=False), 'r2':make_scorer(r2_score)} 
 
 max_depth = 3
@@ -273,6 +265,12 @@ xgb_rgr = xgb.XGBRegressor( max_depth = max_depth,
                             n_estimators = n_estimators, 
                             silent = silent, 
                             n_jobs = n_jobs)
+
+max_depths = np.arange(2,15)
+n_estimators_s = np.array([base*10**power for base in [1,2,5] for power in np.arange(1,5)])
+learning_rates = np.array([base*10.**power for base in np.float32([1,2,5]) for power in np.arange(-4,0)])
+
+xgb_param_dict = dict(max_depth=max_depths, learning_rate=learning_rates, n_estimators=n_estimators_s)
 
 # do_rscv = False
 # if do_rscv:
@@ -286,13 +284,13 @@ xgb_rgr = xgb.XGBRegressor( max_depth = max_depth,
 #                                 return_train_score = 'warn',
 #                                 refit = False,
 #                                 pre_dispatch=1)
-#
+# 
 #     rscv.fit(features_, labels_)
-#
+# 
 #     joblib.dump(rscv, 'spitzer_cal_RSCV_fit_XGB_results.joblib.save')
-
+# 
 # if __name__ == '__main__':
-#
+# 
 
 do_tpot = True
 if do_tpot:
@@ -320,11 +318,24 @@ if do_tpot:
                                 warm_start = True, 
                                 #random_state = 42, 
                                 periodic_checkpoint_folder = './tpot_checkpoints/',
-                                #, early_stop = None,
+                                early_stop = 5,
                                 verbosity = 3)
     
     # Check for any values that are actually integers
     labels_[np.int32(labels_) == labels_] = labels_[np.int32(labels_) == labels_] + 1e-6
-    tpot_rgr.fit(np.array(features_), np.array(labels_))
     
-    joblib.dump(tpot_rgr, 'spitzer_cal_TPOT_fit_XGB_results.joblib.save')
+    idx_train, idx_test = train_test_split(np.arange(labels_.size), test_size=0.50, random_state=42)
+    
+    start = time()
+    tpot_rgr.fit(np.array(features_[idx_train]), np.array(labels_[idx_train]))
+    print('Full TPOT XBGBoost Operation Took {} Hours'.format((time()-start)/3600))
+    
+    n_digits = 5
+    rando_ = np.int(np.random.uniform(int('1' + '0'*(n_digits-1)),int('9'*n_digits)))
+    
+    tpot_save_filename = 'spitzer_cal_TPOT_fit_XGB_results_{}.joblib.save'.format(rando_)
+    train_test_save_filename = 'spitzer_cal_TPOT_idx_train_test_{}.joblib.save'.format(rando_)
+    
+    print('Saving to {}'.format(tpot_save_filename))
+    joblib.dump({'idx_train':idx_train, 'idx_test':idx_test}, train_test_save_filename)
+    joblib.dump(tpot_rgr, tpot_save_filename)
