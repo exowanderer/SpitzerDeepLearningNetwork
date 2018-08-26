@@ -253,7 +253,15 @@ verbose = True # for RSCV
 silent = True # for XGB
 random_state = 42
 
-''' FANCY TF THINGY: NALU'''
+
+''' NALU: Nearual Arithmentic Logical Unit
+        
+        NALU uses memory and logic gates to train a unique TF layer to modify the gradients of the weights.
+        This seems to be very smilar to a LSTM layer, but for a non-RNN.
+        This code has been specifically implemented with tensorflow.
+        
+        Code source: https://github.com/grananqvist/NALU-tf
+'''
 import numpy as np
 import tensorflow as tf
 
