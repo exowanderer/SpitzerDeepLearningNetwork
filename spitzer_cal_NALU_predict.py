@@ -234,8 +234,6 @@ features, labels, pipe_fitted = setup_features( dataRaw       = spitzerCalRawDat
 print('END OF BIG COPY PASTE')
 print('BEGIN NEW HyperParameter Optimization.')
 
-from sklearn.model_selection import RandomizedSearchCV
-
 from sklearn.metrics import make_scorer
 from sklearn.metrics import r2_score, mean_squared_error
 
@@ -254,99 +252,8 @@ cv = 10
 verbose = True # for RSCV
 silent = True # for XGB
 random_state = 42
-scoring = {'rmse': make_scorer(rmse, greater_is_better=False), 'r2':make_scorer(r2_score)} 
 
-max_depth = 3
-learning_rate=0.1
-n_estimators = 100
-
-xgb_rgr = xgb.XGBRegressor( max_depth = max_depth, 
-                            learning_rate = learning_rate, 
-                            n_estimators = n_estimators, 
-                            silent = silent, 
-                            n_jobs = n_jobs)
-
-max_depths = np.arange(2,15)
-n_estimators_s = np.array([base*10**power for base in [1,2,5] for power in np.arange(1,5)])
-learning_rates = np.array([base*10.**power for base in np.float32([1,2,5]) for power in np.arange(-4,0)])
-
-xgb_param_dict = dict(max_depth=max_depths, learning_rate=learning_rates, n_estimators=n_estimators_s)
-
-do_rscv = False
-if do_rscv:
-    rscv = RandomizedSearchCV(xgb_rgr, xgb_param_dict,
-                                n_iter = n_iters,
-                                scoring = scoring,
-                                n_jobs = n_jobs,
-                                cv = cv,
-                                verbose = verbose,
-                                random_state = random_state,
-                                return_train_score = 'warn',
-                                refit = False,
-                                pre_dispatch=1)
-
-    rscv.fit(features_, labels_)
-
-    joblib.dump(rscv, 'spitzer_cal_RSCV_fit_XGB_results.joblib.save')
-
-
-do_tpot = False
-if do_tpot:
-    from tpot import TPOTRegressor
-    
-    # from sklearn.metrics.scorer import make_scorer
-    # GiniScore_scorer = make_scorer(GiniScore, greater_is_better=True)
-    
-    n_generations = 100
-    population_size = 100
-    
-    # xgb_param_dict['subsample'] = np.arange(0.05, 1.01, 0.05),
-    # xgb_param_dict['min_child_weight'] = range(1, 21)
-    
-    regressor_config_dict = {'xgboost.XGBRegressor': xgb_param_dict}
-    
-    tpot_rgr = TPOTRegressor(   generations = n_generations, 
-                                population_size = population_size, 
-                                cv = cv, 
-                                n_jobs = n_jobs,
-                                # scoring = 'r2', 
-                                # scoring = GiniScore_scorer, 
-                                random_state = random_state, 
-                                config_dict = regressor_config_dict,
-                                warm_start = True, 
-                                #random_state = 42, 
-                                periodic_checkpoint_folder = './tpot_checkpoints/',
-                                early_stop = 5,
-                                verbosity = 3)
-    
-    # Check for any values that are actually integers
-    labels_[np.int32(labels_) == labels_] = labels_[np.int32(labels_) == labels_] + 1e-6
-    
-    idx_train, idx_test = train_test_split(np.arange(labels_.size), test_size=0.50, random_state=42)
-    
-    start = time()
-    tpot_rgr.fit(np.array(features_[idx_train]), np.array(labels_[idx_train]))
-    print('Full TPOT XBGBoost Operation Took {} Hours'.format((time()-start)/3600))
-    
-    n_digits = 5
-    rando_ = np.int(np.random.uniform(int('1' + '0'*(n_digits-1)),int('9'*n_digits)))
-    
-    tpot_save_filename = 'spitzer_cal_TPOT_fit_XGB_results_{}.joblib.save'.format(rando_)
-    train_test_save_filename = 'spitzer_cal_TPOT_idx_train_test_{}.joblib.save'.format(rando_)
-    
-    print('Saving to {}'.format(tpot_save_filename))
-    joblib.dump({'idx_train':idx_train, 'idx_test':idx_test}, train_test_save_filename)
-    joblib.dump(tpot_rgr, tpot_save_filename)
-
-''' NALU: Nearual Arithmentic Logical Unit
-        
-        NALU uses memory and logic gates to train a unique TF layer to modify the gradients of the weights.
-        This seems to be very smilar to a LSTM layer, but for a non-RNN.
-        This code has been specifically implemented with tensorflow.
-        
-        Code source: https://github.com/grananqvist/NALU-tf
-'''
-
+''' FANCY TF THINGY: NALU'''
 import numpy as np
 import tensorflow as tf
 
@@ -376,56 +283,24 @@ def nalu(input_layer, num_outputs):
     out = g * a + (1 - g) * m
     
     return out
-
-def generate_dataset(size=10000, op='sum', n_features=2):
-    """ Generate dataset for NALU toy problem
     
-    Arguments:
-    size - number of samples to generate
-    op - the operation that the generated data should represent. sum | prod 
-    Returns:
-    X - the dataset
-    Y - the dataset labels
-    """
-    
-    X = np.random.randint(9, size=(size, n_features))
-    
-    if op == 'prod':
-        Y = np.prod(X, axis=1, keepdims=True)
-    else:
-        Y = np.sum(X, axis=1, keepdims=True)
-    
-    return X, Y
-
-do_NALU = False
-if __name__ == "__main__" and do_NALU:
+if __name__ == "__main__":
     from tqdm import tqdm
+    # from tensorflow.saved_model import simple_save as tf_simple_save
     EPOCHS = 200
     LEARNING_RATE = 1e-3
     BATCH_SIZE = 32
-    # N_FEATURES = 5
     
-    # create dataset
-    # X_data, Y_data = generate_dataset(op='prod', n_features=N_FEATURES)
-    
+    tf.reset_default_graph()
+        
     idx_train, idx_test = train_test_split(np.arange(labels_.size), test_size=0.75, random_state=42)
-    X_data, Y_data = features_[idx_train], labels_[idx_train][:,None]
+    X_data, Y_data = features_[idx_test], labels_[idx_test][:,None]
     
     N_FEATURES = X_data.shape[-1]
-    LAST_BIT = X_data.shape[0]-BATCH_SIZE*(X_data.shape[0]//BATCH_SIZE)
-    
-    print('FAKE DATA SHAPE: {}'.format(X_data.shape))
-    print('FAKE DATA N-BATCHES: {}'.format(X_data.shape[0]//BATCH_SIZE))
-    print('FAKE DATA N-LEFT: {}'.format(LAST_BIT))
-    # import sys; sys.exit()
-    
-    # Force integer number of batches total by dropping last "<BATCH_SIEZ" number of samples
-    X_data_use = X_data[:-LAST_BIT].copy()
-    Y_data_use = Y_data[:-LAST_BIT].copy()
     
     # define placeholders and network
-    X = tf.placeholder(tf.float32, shape=[BATCH_SIZE, N_FEATURES])
-    Y_true = tf.placeholder(tf.float32, shape=[BATCH_SIZE, 1])
+    X = tf.placeholder(tf.float32, shape=[None, N_FEATURES])
+    Y_true = tf.placeholder(tf.float32, shape=[None, 1])
     Y_pred = nalu(X, 1)
     
     # loss and train operations
@@ -439,32 +314,27 @@ if __name__ == "__main__" and do_NALU:
     # Add ops to save and restore all the variables.
     saver = tf.train.Saver()
     
-    export_dir = 'nalu_tf_save_dir/saves_{}/'.format(time())
+    # sess = tf.Session()
+    # init = tf.global_variables_initializer()
+    # sess.run(init)
+    
+    # time_saved = '1535275562.109885'
+    time_saved = 'double_nalu_1535310729.849681'
+    
+    export_dir = 'nalu_tf_save_dir/saves_{}/'.format(time_saved)
+    
+    # l_saved = 0.00018134
+    # acc_saved = 0.041376
+    # rs_saved = 0.64632
+    
+    load_path = export_dir+ "model_epoch_FINAL_l{}_a{}_RS{}.ckpt".format(l_saved, acc_saved, rs_saved)
+    print("Loaded model stored in path: %s" % load_path)
     
     with tf.Session() as sess:
-        sess.run(init_op)
+        # Restore variables from disk.
+        saver.restore(sess, load_path)
+        print("Model restored.")
+        # Check the values of the variables
+        ys_pred = Y_pred.eval(feed_dict={X: X_data})
         
-        for ep in tqdm(range(EPOCHS)):
-            i = 0
-            gts = 0
-            
-            while i < len(X_data_use):
-                xs, ys = X_data_use[i:i+BATCH_SIZE], Y_data_use[i:i+BATCH_SIZE]
-                
-                _, ys_pred, l = sess.run([train_op, Y_pred, loss], 
-                        feed_dict={X: xs, Y_true: ys})
-                
-                # calculate number of correct predictions from batch
-                gts += np.sum(np.isclose(ys, ys_pred, atol=1e-4, rtol=1e-4)) 
-                
-                i += BATCH_SIZE
-            
-            acc = gts/len(Y_data_use)
-            r2 = r2_score(ys, ys_pred)
-            print('epoch {}, loss: {:.5}, accuracy: {:.5}, R2: {:.5}'.format(ep, l, acc, r2))
-            
-            save_path = saver.save(sess, export_dir+ "model_epoch{}_l{:.5}_a{:.5}_RS{:.5}.ckpt".format(ep, l, acc, r2))
-            print("Model saved in path: %s" % save_path)
-        
-        save_path = saver.save(sess, export_dir+ "model_epoch{}_l{:.5}_a{:.5}_RS{:.5}.ckpt".format('_FINAL', l, acc, r2))
-        print("Model saved in path: %s" % save_path)
+        print("R2_Test: {}".format(r2_score(Y_data,ys_pred)))
