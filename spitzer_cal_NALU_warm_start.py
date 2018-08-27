@@ -1,8 +1,8 @@
-import multiprocessing
-multiprocessing.set_start_method('forkserver')
+from multiprocessing import set_start_method, cpu_count
+set_start_method('forkserver')
 
 import os
-os.environ["OMP_NUM_THREADS"] = str(multiprocessing.cpu_count())  # or to whatever you want
+os.environ["OMP_NUM_THREADS"] = str(cpu_count())  # or to whatever you want
 
 print('BEGIN BIG COPY PASTE ')
 # This section is for if/when I copy/paste the code into a ipython sesssion
@@ -160,10 +160,10 @@ def random_forest_wrapper(features, labels, n_trees, n_jobs, grad_boost=False, h
         # objective='reg:linear', booster='gbtree', 
         # gamma=0, min_child_weight=1, max_delta_step=0, subsample=1,
         # colsample_bytree=1, colsample_bylevel=1, reg_alpha=0, reg_lambda=1,
-        # scale_pos_weight=1, base_score=0.5, random_state=0, seed=None,
+        # scale_pos_weight=1, base_score=0.5, RANDOM_STATE=0, seed=None,
         # missing=None
         
-        features, testX, labels, testY  = train_test_split(features_, labels_, test_size=0.25)
+        features, testX, labels, testY  = train_test_split(features_, labels_, TEST_SIZE=0.25)
     else: 
         rgr = RandomForestRegressor(    n_estimators  = n_trees      ,
                                         n_jobs        = n_jobs       ,
@@ -234,24 +234,7 @@ features, labels, pipe_fitted = setup_features( dataRaw       = spitzerCalRawDat
 print('END OF BIG COPY PASTE')
 print('BEGIN NEW HyperParameter Optimization.')
 
-from sklearn.metrics import make_scorer
-from sklearn.metrics import r2_score, mean_squared_error
-
-def rmse(yt,yp): return np.sqrt(mean_squared_error(yt,yp))
-
-grad_boost=False
-header='XGB'
-core = 'A'
-pipe = None
-features_ = features.copy()
-labels_   = labels.copy()
-
-n_iters = 100
-n_jobs = -1
-cv = 10
-verbose = True # for RSCV
-silent = True # for XGB
-random_state = 42
+from sklearn.metrics import r2_score
 
 
 ''' NALU: Nearual Arithmentic Logical Unit
@@ -292,15 +275,66 @@ def nalu(input_layer, num_outputs):
     out = g * a + (1 - g) * m
     
     return out
+
+def generate_dataset(size=10000, op='sum', n_features=2):
+    """ Generate dataset for NALU toy problem
     
+    Arguments:
+    size - number of samples to generate
+    op - the operation that the generated data should represent. sum | prod 
+    Returns:
+    X - the dataset
+    Y - the dataset labels
+    """
+    
+    X = np.random.randint(9, size=(size, n_features))
+    
+    if op == 'prod':
+        Y = np.prod(X, axis=1, keepdims=True)
+    else:
+        Y = np.sum(X, axis=1, keepdims=True)
+    
+    return X, Y
+
 if __name__ == "__main__":
     from tqdm import tqdm
-    EPOCHS = 1000
-    LEARNING_RATE = 1e-3
-    BATCH_SIZE = 32
+    from argparse import ArgumentParser
     
-    idx_train, idx_test = train_test_split(np.arange(labels_.size), test_size=0.75, random_state=42)
-    X_data, Y_data = features_[idx_train], labels_[idx_train][:,None]
+    ap = ArgumentParser()
+    
+    ap.add_argument('-id', '--import_dir', type=str, required=True, help='The tensorflow ckpt save file')
+    ap.add_argument('-ed', '--export_dir', type=str, required=False, default='nalu_tf_save_dir/saves_warm_start_{}'.format(time()), help='The tensorflow ckpt save file')
+    ap.add_argument('-nnl', '--n_nalu_layers', type=int, required=False, default=1, help='Whether to use 1 (default), 2, or ... N NALU layers.')
+    ap.add_argument('-nnn', '--n_nalu_neurons', type=int, required=False, default=1, help='How many features on the second NALU layer')
+    ap.add_argument('-ne', '--n_epochs', type=int, required=False, default=200, help='Number of N_EPOCHS to train the network with.')
+    ap.add_argument('-nc', '--n_classes', type=int, required=False, default=1, help='n_classes == 1 for Regression (default); > 1 for Classification.')
+    ap.add_argument('-bs', '--batch_size', type=int, required=False, default=32, help='Batch size: number of samples per batch.')
+    ap.add_argument('-lr', '--learning_rate', type=float, required=False, default=1e-3, help='Learning rate: how fast the optimizer moves up/down the gradient.')
+    ap.add_argument('-ts', '--test_size', type=float, required=False, default=0.75, help='How much to split the train / test ratio')
+    ap.add_argument('-rs', '--random_state', type=int, required=False, default=42, help='Integer value to initialize train/test splitting randomization')
+    
+    args = vars(ap.parse_args())
+    
+    IMPORT_DIR = args['import_dir']
+    EXPORT_DIR = args['export_dir']
+    N_NALU_LAYERS = args['n_nalu_layers']
+    N_NALU_NEURONS = args['n_nalu_neurons']
+    N_CLASSES = args['n_classes'] # = 1 for regression
+    TEST_SIZE = args['test_size']
+    RANDOM_STATE = args['random_state']
+    
+    N_EPOCHS = args['n_epochs']
+    LEARNING_RATE = args['learning_rate']
+    BATCH_SIZE = args['batch_size']
+    
+    WS_TIME = IMPORT_DIR.split('/')[1].split('_')[1]
+    EXPORT_DIR = EXPORT_DIR + '_WS{}_nnl{}_nnn{}_nc{}_bs{}_lr{}_ne{}_ts{}_rs{}/'.format(WS_TIME, N_NALU_LAYERS, N_NALU_NEURONS, N_CLASSES, 
+                                                                                        BATCH_SIZE, LEARNING_RATE, N_EPOCHS, TEST_SIZE, RANDOM_STATE)
+    
+    print("Saving models to path: {}".format(EXPORT_DIR))
+    
+    idx_train, idx_test = train_test_split(np.arange(labels.size), test_size=TEST_SIZE, random_state=RANDOM_STATE)
+    X_data, Y_data = features[idx_train], labels[idx_train][:,None]
     
     N_FEATURES = X_data.shape[-1]
     LAST_BIT = X_data.shape[0]-BATCH_SIZE*(X_data.shape[0]//BATCH_SIZE)
@@ -309,43 +343,42 @@ if __name__ == "__main__":
     X_data_use = X_data[:-LAST_BIT].copy()
     Y_data_use = Y_data[:-LAST_BIT].copy()
     
-    # define placeholders and network
-    X = tf.placeholder(tf.float32, shape=[None, N_FEATURES])
-    Y_true = tf.placeholder(tf.float32, shape=[None, 1])
-    Y_pred = nalu(X, 1)
+    N_FEATURES = X_data.shape[-1]
     
-    # loss and train operations
-    loss = tf.nn.l2_loss(Y_pred - Y_true) # NALU uses mse
-    optimizer = tf.train.AdamOptimizer(LEARNING_RATE)
-    train_op = optimizer.minimize(loss)
-    
-    # Add an op to initialize the variables.
-    init_op = tf.global_variables_initializer()
-    
-    # Add ops to save and restore all the variables.
-    saver = tf.train.Saver()
-    
-    # sess = tf.Session()
-    # init = tf.global_variables_initializer()
-    # sess.run(init)
-    
-    time_saved = '1535275562.109885'
-    import_dir = 'nalu_tf_save_dir/saves_{}/'.format(time_saved)
-    export_dir = 'nalu_tf_save_dir/saves_warm_start_{}/'.format(time())
-    
-    # Where to Warm Start From
-    l_saved = 0.00018134
-    acc_saved = 0.041376
-    rs_saved = 0.64632
-    
-    load_path = import_dir+ "model_epoch_FINAL_l{}_a{}_RS{}.ckpt".format(l_saved, acc_saved, rs_saved)
-    print("Loaded model stored in path: %s" % load_path)
-    
-    with tf.Session() as sess:
-        # Restore variables from disk.
-        saver.restore(sess, load_path)
+    with tf.device("/cpu:0"):
+        # tf.reset_default_graph()
         
-        for ep in tqdm(range(EPOCHS)):
+        # define placeholders and network
+        X = tf.placeholder(tf.float32, shape=[None, N_FEATURES])
+        Y_true = tf.placeholder(tf.float32, shape=[None, 1])
+        
+        # Setup NALU Layers
+        nalu_layers = {'nalu0':nalu(X,N_NALU_NEURONS)}
+        for kn in range(1, N_NALU_LAYERS):
+            nalu_layers['nalu{}'.format(kn)] = nalu(nalu_layers['nalu{}'.format(kn-1)], N_NALU_NEURONS)
+        
+        Y_pred = nalu(nalu_layers['nalu{}'.format(N_NALU_LAYERS-1)], N_CLASSES) # N_CLASSES = 1 for regression
+        
+        # loss and train operations
+        loss = tf.nn.l2_loss(Y_pred - Y_true) # NALU uses mse
+        optimizer = tf.train.AdamOptimizer(LEARNING_RATE)
+        train_op = optimizer.minimize(loss)
+        
+        # Add an op to initialize the variables.
+        init_op = tf.global_variables_initializer()
+        
+        # Add ops to save and restore all the variables.
+        saver = tf.train.Saver()
+    
+    sess_config = tf.ConfigProto(
+                    device_count={"CPU": cpu_count()},
+                    inter_op_parallelism_threads=cpu_count(),
+                    intra_op_parallelism_threads=cpu_count())
+    
+    with tf.Session(config=sess_config) as sess:
+        saver.restore(sess, IMPORT_DIR)
+        
+        for ep in tqdm(range(N_EPOCHS)):
             i = 0
             gts = 0
             
@@ -360,18 +393,20 @@ if __name__ == "__main__":
                 
                 i += BATCH_SIZE
             
-            ytest_pred = Y_pred.eval(feed_dict={X: features_[idx_test]})
-            test_r2 = r2_score(labels_[idx_test][:,None], ytest_pred)
+            ytest_pred = Y_pred.eval(feed_dict={X: features[idx_test]})
+            test_r2 = r2_score(labels[idx_test][:,None], ytest_pred)
             # print("Test R2 Score: {}".format(test_r2_score))
             
             acc = gts/len(Y_data_use)
             train_r2 = r2_score(ys, ys_pred)
             print('epoch {}, loss: {:.5}, accuracy: {:.5}, Batch R2: {:.5}, Test R2: {:.5}'.format(ep, l, acc, train_r2, test_r2))
             
-            save_path = saver.save(sess, export_dir+ "model_epoch{}_l{:.5}_a{:.5}_TrRS{:.5}_TeRS{:.5}.ckpt".format(ep, l, acc, train_r2, test_r2))
-            print("Model saved in path: %s" % save_path)
+            file_name = "model_epoch{}_l{:.5}_a{:.5}_BatchR2-{:.5}_TestR2-{:.5}.ckpt".format(ep, l, acc, train_r2, test_r2)
+            save_path = saver.save(sess, EXPORT_DIR + file_name)
+            # print("Model saved in path: %s" % save_path)
         
         ep = '_FINAL'
         
-        save_path = saver.save(sess, export_dir+ "model_epoch{}_l{:.5}_a{:.5}_TrRS{:.5}_TeRS{:.5}.ckpt".format(ep, l, acc, train_r2, test_r2))
-        print("Model saved in path: %s" % save_path)
+        file_name = "model_epoch{}_l{:.5}_a{:.5}_BatchR2-{:.5}_TestR2-{:.5}.ckpt".format(ep, l, acc, train_r2, test_r2)
+        save_path = saver.save(sess, EXPORT_DIR + file_name)
+        print("Model saved in path: {}".format(save_path))
