@@ -265,26 +265,6 @@ def nalu(input_layer, num_outputs):
     
     return out
 
-def generate_dataset(size=10000, op='sum', n_features=2):
-    """ Generate dataset for NALU toy problem
-    
-    Arguments:
-    size - number of samples to generate
-    op - the operation that the generated data should represent. sum | prod 
-    Returns:
-    X - the dataset
-    Y - the dataset labels
-    """
-    
-    X = np.random.randint(9, size=(size, n_features))
-    
-    if op == 'prod':
-        Y = np.prod(X, axis=1, keepdims=True)
-    else:
-        Y = np.sum(X, axis=1, keepdims=True)
-    
-    return X, Y
-
 def median_sub_nan(thingy):
     thingy[np.isnan(thingy)] = np.median(thingy[~np.isnan(thingy)])
     return thingy
@@ -312,15 +292,6 @@ if __name__ == "__main__":
     print("Saving models to path: {}".format(EXPORT_DIR))
     
     idx_train, idx_test = train_test_split(np.arange(labels.size), test_size=TEST_SIZE, random_state=RANDOM_STATE)
-    
-    ''' PCA Requires Standard Scaling
-            Here we Standard Scale, and then immediate PCA transform, simultaneously
-    '''
-    features_in = PCA().fit_transform(StandardScaler().fit_transform(features)) if do_pca else features.copy()
-    
-    ''' Because PCA requires standard scaling, let's save some CPUs by ignoring this pre-processing
-    '''
-    if do_pp: features_in = MinMaxScaler().fit_transform(features_in)
     
     X_data, Y_data = features_in[idx_train], labels[idx_train][:,None]
     

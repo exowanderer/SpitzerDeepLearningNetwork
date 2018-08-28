@@ -18,19 +18,17 @@ def str2bool(v):
 
 ap = ArgumentParser()
 
-ap.add_argument('-d', '--directory', type=str, required=False, default='nalu_tf_save_dir/saves_{}'.format(time_now), help='The tensorflow ckpt save file.')
+ap.add_argument('-d', '--directory', type=str, required=False, default='nalu_tf_save_dir/saves_{}'.format(time_now), help='The tensorflow ckpt save file')
 ap.add_argument('-nnl', '--n_nalu_layers', type=int, required=False, default=1, help='Whether to use 1 (default), 2, or ... N NALU layers.')
-ap.add_argument('-nnn', '--n_nalu_neurons', type=int, required=False, default=0, help='How many features on the second NALU layer.')
+ap.add_argument('-nnn', '--n_nalu_neurons', type=int, required=False, default=0, help='How many features on the second NALU layer')
 ap.add_argument('-ne', '--n_epochs', type=int, required=False, default=200, help='Number of N_EPOCHS to train the network with.')
 ap.add_argument('-nc', '--n_classes', type=int, required=False, default=1, help='n_classes == 1 for Regression (default); > 1 for Classification.')
 ap.add_argument('-bs', '--batch_size', type=int, required=False, default=32, help='Batch size: number of samples per batch.')
 ap.add_argument('-lr', '--learning_rate', type=float, required=False, default=1e-3, help='Learning rate: how fast the optimizer moves up/down the gradient.')
-ap.add_argument('-ts', '--test_size', type=float, required=False, default=0.75, help='How much to split the train / test ratio.')
-ap.add_argument('-rs', '--random_state', type=int, required=False, default=42, help='Integer value to initialize train/test splitting randomization.')
-ap.add_argument('-pp', '--pre_process', type=str2bool, nargs='?', required=False, default=True, help='Toggle whether to MinMax-preprocess the features.')
-ap.add_argument('-pca', '--pca_transform', type=str2bool, nargs='?', required=False, default=True, help='Toggle whether to PCA-pretransform the features.')
-ap.add_argument('-v', '--verbose', type=str2bool, nargs='?', required=False, default=False, help='Whether to set verbosity = True or False (default).')
-ap.add_argument('-ds', '--data_set', type=str, required=False, default='', help='The csv file containing the data with which to train.')
+ap.add_argument('-ts', '--test_size', type=float, required=False, default=0.75, help='How much to split the train / test ratio')
+ap.add_argument('-rs', '--random_state', type=int, required=False, default=42, help='Integer value to initialize train/test splitting randomization')
+ap.add_argument('-v', '--verbose', type=str2bool, nargs='?', required=False, default=False, help='Whether to set verbosity = True or False (default)')
+ap.add_argument('-ds', '--data_set', type=str, required=False, default='', help='The csv file containing the data to predict with')
 
 try:
     args = vars(ap.parse_args())
@@ -45,13 +43,8 @@ except:
     args['learning_rate'] = ap.get_default('learning_rate')
     args['test_size'] = ap.get_default('test_size')
     arts['random_state'] = ap.get_default('random_state')
-    args['pre_process'] =  ap.get_default('pre_process')
-    args['pca_transform'] =  ap.get_default('pca_transform')
     args['verbose'] = ap.get_default('verbose')
     args['data_set'] = ap.get_default('data_set')
-
-DO_PP = args['pre_process']
-DO_PCA = args['pca_transform']
 
 verbose = args['verbose']
 data_set_fname = args['data_set']
@@ -155,7 +148,7 @@ def setup_features(dataRaw, label='flux', notFeatures=[], pipeline=None, verbose
     if label in inputData.columns: inputData.drop(label, axis=1, inplace=True)
     
     feature_columns = [colname for colname in inputData.columns if colname not in notFeatures]
-    # print('\n\n','flux' in notFeatures, 'flux' in feature_columns, '\n\n')
+    print('\n\n','flux' in notFeatures, 'flux' in feature_columns, '\n\n')
     features = inputData[feature_columns].values
     
     if verbose: print('Shape of Features Array is', features.shape)
@@ -285,14 +278,6 @@ def generate_dataset(size=10000, op='sum', n_features=2):
 
 def chisq(y_true, y_pred, y_error): return np.sum(((y_true-y_pred)/y_error)**2.)
 
-def median_sub_nan(thingy):
-    thingy[np.isnan(thingy)] = np.median(thingy[~np.isnan(thingy)])
-    return thingy
-
-def median_sub_nan(thingy):
-    thingy[np.isnan(thingy)] = np.median(thingy[not np.isnan(thingy)])
-    return thingy
-
 if __name__ == "__main__":
     N_FEATURES = features.shape[-1]
     
@@ -307,22 +292,20 @@ if __name__ == "__main__":
     LEARNING_RATE = args['learning_rate']
     BATCH_SIZE = args['batch_size']
     
-    EXPORT_DIR = EXPORT_DIR + '_nnl{}_nnn{}_nc{}_bs{}_lr{}_ne{}_ts{}_rs{}_PP{}_PCA{}/'.format(N_NALU_LAYERS, N_NALU_NEURONS, N_CLASSES, 
-                                                                                              BATCH_SIZE, LEARNING_RATE, N_EPOCHS, 
-                                                                                              TEST_SIZE, RANDOM_STATE, 
-                                                                                              {True:1, False:0}[DO_PP], {True:1, False:0}[DO_PCA])
+    EXPORT_DIR = EXPORT_DIR + '_nnl{}_nnn{}_nc{}_bs{}_lr{}_ne{}_ts{}_rs{}/'.format(N_NALU_LAYERS, N_NALU_NEURONS, N_CLASSES, BATCH_SIZE, LEARNING_RATE, N_EPOCHS, TEST_SIZE, RANDOM_STATE)
     
     print("Saving models to path: {}".format(EXPORT_DIR))
     
     idx_train, idx_test = train_test_split(np.arange(labels.size), test_size=TEST_SIZE, random_state=RANDOM_STATE)
-    
-    X_data, Y_data = features_in[idx_train], labels[idx_train][:,None]
+    X_data, Y_data = features[idx_train], labels[idx_train][:,None]
     
     LAST_BIT = X_data.shape[0]-BATCH_SIZE*(X_data.shape[0]//BATCH_SIZE)
     
     # Force integer number of batches total by dropping last "<BATCH_SIEZ" number of samples
     X_data_use = X_data[:-LAST_BIT].copy()
     Y_data_use = Y_data[:-LAST_BIT].copy()
+    
+    N_FEATURES = X_data.shape[-1]
     
     output_dict = {}
     output_dict['loss'] = np.zeros(N_EPOCHS)
@@ -421,9 +404,7 @@ if __name__ == "__main__":
                 
                 i += BATCH_SIZE
             
-            ytest_pred = Y_pred.eval(feed_dict={X: features_in[idx_test]})
-            if np.isnan(ytest_pred).any(): ytest_pred = median_sub_nan(ytest_pred)
-            
+            ytest_pred = Y_pred.eval(feed_dict={X: features[idx_test]})
             test_r2 = r2_score(labels[idx_test][:,None], ytest_pred)
             # print("Test R2 Score: {}".format(test_r2_score))
             
@@ -438,24 +419,24 @@ if __name__ == "__main__":
             output_dict['chisq_train'][ep] = chisq(ys.flatten(), ys_pred.flatten(), spitzerCalRawData['fluxerr'][i:i+BATCH_SIZE])
             output_dict['chisq_test'][ep] = chisq(labels[idx_test], ytest_pred.flatten(), spitzerCalRawData['fluxerr'][idx_test])
             
-            now_save_name = EXPORT_DIR + "model_epoch{}_l{:.5}_a{:.5}_BatchR2-{:.5}_TestR2-{:.5}.ckpt".format(  ep, l, acc, train_r2, test_r2)
-            save_path = saver.save(sess, now_save_name)
+            save_path = saver.save(sess, EXPORT_DIR + "model_epoch{}_l{:.5}_a{:.5}_BatchR2-{:.5}_TestR2-{:.5}.ckpt".format(ep, l, acc, train_r2, test_r2))
+            # print("Model saved in path: %s" % save_path)
+            
             if test_r2 >= best_test_r2:
                 best_test_r2 = test_r2
                 ''' Store the Best Scored Test-R2 '''
-                best_save_name = EXPORT_DIR + "best_test_r2/model_epoch{}_l{:.5}_a{:.5}_BatchR2-{:.5}_TestR2-{:.5}.ckpt".format( ep, l, acc, train_r2, test_r2)
-                save_path = saver.save(sess, best_save_name)
+                save_path = saver.save(sess, EXPORT_DIR + "best_test_r2/model_epoch{}_l{:.5}_a{:.5}_BatchR2-{:.5}_TestR2-{:.5}.ckpt".format(ep, l, acc, train_r2, test_r2))
         
         ep = '_FINAL'
-        final_save_name = EXPORT_DIR+ "model_epoch{}_l{:.5}_a{:.5}_BatchR2-{:.5}_TestR2-{:.5}.ckpt".format(   ep, l, acc, train_r2, test_r2)
-        save_path = saver.save(sess, final_save_name)
         
-        print("Model saved in path: {}".format(save_path))
+        save_path = saver.save(sess, EXPORT_DIR+ "model_epoch{}_l{:.5}_a{:.5}_BatchR2-{:.5}_TestR2-{:.5}.ckpt".format(ep, l, acc, train_r2, test_r2))
+        print("Model saved in path: %s" % save_path)
         
         try:
             pd.DataFrame(output_dict, index=range(N_EPOCHS)).to_csv(EXPORT_DIR+ "model_loss_acc_BatchR2_TestR2_DataFrame.csv")
         except Exception as e:
             print('DataFrame to CSV broke because', str(e))
+
 
 '''
 
