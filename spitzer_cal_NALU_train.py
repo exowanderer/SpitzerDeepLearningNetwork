@@ -155,7 +155,7 @@ def setup_features(dataRaw, label='flux', notFeatures=[], pipeline=None, verbose
     if label in inputData.columns: inputData.drop(label, axis=1, inplace=True)
     
     feature_columns = [colname for colname in inputData.columns if colname not in notFeatures]
-    # print('\n\n','flux' in notFeatures, 'flux' in feature_columns, '\n\n')
+    
     features = inputData[feature_columns].values
     
     if verbose: print('Shape of Features Array is', features.shape)

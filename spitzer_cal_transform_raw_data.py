@@ -1,8 +1,8 @@
 from multiprocessing import set_start_method, cpu_count
-#set_start_method('forkserver')
+set_start_method('forkserver')
 
-import os
-os.environ["OMP_NUM_THREADS"] = str(cpu_count())  # or to whatever you want
+# import os
+# os.environ["OMP_NUM_THREADS"] = str(cpu_count())  # or to whatever you want
 
 from argparse import ArgumentParser
 from datetime import datetime
@@ -139,7 +139,7 @@ def setup_features(dataRaw, label='flux', notFeatures=[], pipeline=None, verbose
     if label in inputData.columns: inputData.drop(label, axis=1, inplace=True)
     
     feature_columns = [colname for colname in inputData.columns if colname not in notFeatures]
-    print('\n\n','flux' in notFeatures, 'flux' in feature_columns, '\n\n')
+    
     features = inputData[feature_columns].values
     
     if verbose: print('Shape of Features Array is', features.shape)
@@ -203,6 +203,8 @@ features, labels, pipe_fitted = setup_features( dataRaw = spitzerCalRawData,
 
 n_samples = len(features)
 
+print("Establishing the Pipeline Components.")
+
 std_scaler_from_raw = StandardScaler()
 pca_transformer_from_std_scaled = PCA()
 minmax_scaler_transformer_raw = MinMaxScaler()
@@ -213,21 +215,25 @@ operations.append(('std_scaler', StandardScaler()))
 operations.append(('pca_transform', PCA()))
 operations.append(('minmax_scaler', MinMaxScaler()))
 
+print("Establishing the Full Pipeline.")
 full_pipe = Pipeline(operations)
-full_pipe_transformed_features = full_pipe.fit_transform(features)
 
-standard_scaled_features = std_scaler.fit_transform(features)
-pca_standard_scaled_features = pca_transformer.fit_transform(standard_scaled_features)
+print("Transforming Raw Data in Multiple Paths.")
+full_pipe_transformed_features = full_pipe.fit_transform(features)
+standard_scaled_features = std_scaler_from_raw.fit_transform(features)
+pca_standard_scaled_features = pca_transformer_from_std_scaled.fit_transform(standard_scaled_features)
 minmax_scaled_features_raw = minmax_scaler_transformer_raw.fit_transform(features)
 minmax_scaled_features_pca = minmax_scaler_transformer_pca.fit_transform(pca_standard_scaled_features)
 
+print("Storing pipelines on disk vis joblib.")
 joblib.dump(full_pipe, 'pmap_full_pipe_transformer_16features.joblib.save')
 joblib.dump(std_scaler_from_raw, 'pmap_standard_scaler_transformer_16features.joblib.save')
 joblib.dump(pca_transformer_from_std_scaled, 'pmap_pca_transformer_from_stdscaler_16features.joblib.save')
 joblib.dump(minmax_scaler_transformer_raw, 'pmap_minmax_scaler_transformer_from_raw_16features.joblib.save')
 joblib.dump(minmax_scaler_transformer_pca, 'pmap_minmax_scaler_transformer_from_pca_16features.joblib.save')
 
-pd.Dataframe(labels, index=range(n_samples)).to_csv('pmap_raw_labels.csv')
+print("Saving raw and transformed features to DataFrame csv.")
+pd.DataFrame(labels, index=range(n_samples)).to_csv('pmap_raw_labels.csv')
 pd.DataFrame(features, index=range(n_samples)).to_csv('pmap_raw_16features.csv')
 pd.DataFrame(full_pipe_transformed_features, index=range(n_samples)).to_csv('pmap_full_pipe_transformed_16features.csv')
 pd.DataFrame(standard_scaled_features, index=range(n_samples)).to_csv('pmap_standard_scaled_16features.csv')
