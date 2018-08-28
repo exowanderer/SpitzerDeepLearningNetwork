@@ -4,22 +4,61 @@ set_start_method('forkserver')
 import os
 os.environ["OMP_NUM_THREADS"] = str(cpu_count())  # or to whatever you want
 
+from argparse import ArgumentParser
+from datetime import datetime
+time_now = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+ap = ArgumentParser()
+
+ap.add_argument('-id', '--import_dir', type=str, required=True, help='The tensorflow ckpt save file')
+ap.add_argument('-ed', '--export_dir', type=str, required=False, default='nalu_tf_save_dir/saves_warm_start_{}'.format(time_now), help='The tensorflow ckpt save file')
+ap.add_argument('-nnl', '--n_nalu_layers', type=int, required=False, default=1, help='Whether to use 1 (default), 2, or ... N NALU layers.')
+ap.add_argument('-nnn', '--n_nalu_neurons', type=int, required=False, default=0, help='How many features on the second NALU layer')
+ap.add_argument('-ne', '--n_epochs', type=int, required=False, default=200, help='Number of N_EPOCHS to train the network with.')
+ap.add_argument('-nc', '--n_classes', type=int, required=False, default=1, help='n_classes == 1 for Regression (default); > 1 for Classification.')
+ap.add_argument('-bs', '--batch_size', type=int, required=False, default=32, help='Batch size: number of samples per batch.')
+ap.add_argument('-lr', '--learning_rate', type=float, required=False, default=1e-3, help='Learning rate: how fast the optimizer moves up/down the gradient.')
+ap.add_argument('-ts', '--test_size', type=float, required=False, default=0.75, help='How much to split the train / test ratio')
+ap.add_argument('-rs', '--random_state', type=int, required=False, default=42, help='Integer value to initialize train/test splitting randomization')
+ap.add_argument('-pp', '--pre_process', type=str2bool, nargs='?', required=False, default=True, help='Toggle whether to MinMax-preprocess the features.')
+ap.add_argument('-pca', '--pca_transform', type=str2bool, nargs='?', required=False, default=True, help='Toggle whether to PCA-pretransform the features.')
+ap.add_argument('-v', '--verbose', type=str2bool, nargs='?', required=False, default=False, help='Whether to set verbosity = True or False (default).')
+ap.add_argument('-ds', '--data_set', type=str, required=False, default='', help='The csv file containing the data with which to train.')
+
+try:
+    args = vars(ap.parse_args())
+except:
+    args = {}
+    args['import_dir'] = ''; print('\n\n**FINDME: THIS WILL BREAK LATER**\n\n')
+    args['export_dir'] = ap.get_default('export_dir')
+    args['n_nalu_layers'] = ap.get_default('n_nalu_layers')
+    args['n_nalu_neurons'] = ap.get_default('n_nalu_neurons')
+    args['n_epochs'] = ap.get_default('n_epochs')
+    args['n_classes'] = ap.get_default('n_classes')
+    args['batch_size'] = ap.get_default('batch_size')
+    args['learning_rate'] = ap.get_default('learning_rate')
+    args['test_size'] = ap.get_default('test_size')
+    args['random_state'] = ap.get_default('random_state')
+    args['pre_process'] =  ap.get_default('pre_process')
+    args['pca_transform'] =  ap.get_default('pca_transform')
+    args['verbose'] = ap.get_default('verbose')
+    args['data_set'] = ap.get_default('data_set')
+
+do_pp = args['pre_process']
+do_pca = args['pca_transform']
+
+verbose = args['verbose']
+data_set_fname = args['data_set']
+
 print('BEGIN BIG COPY PASTE ')
-# This section is for if/when I copy/paste the code into a ipython sesssion
-n_resamp    = 0
-n_trees     = 100
-core        = 'A' # unknown
-do_std      = False
-do_pca      = False
-do_ica      = False
-do_rfi      = False
-do_gbr      = False
-do_pp       = False
-rand_state  = 42
-pdb_stop    = False
-n_jobs      = -1
-sp_fname    = ''
-verbose     = True
 
 import pandas as pd
 import numpy as np
@@ -66,6 +105,7 @@ def setup_features(dataRaw, label='flux', notFeatures=[], pipeline=None, verbose
             https://github.com/ExoWanderer/
 
     """
+    # if label in notFeatures: notFeatures.remove(label)
     
     if isinstance(dataRaw,str):
         dataRaw = pd.read_csv(filename)
@@ -111,13 +151,14 @@ def setup_features(dataRaw, label='flux', notFeatures=[], pipeline=None, verbose
     else:
         inputData = pd.DataFrame({colname:dataRaw[colname] for colname in input_labels})
     
-    labels  = inputData[label].values
+    labels  = dataRaw[label].values
     
     # explicitly remove the label
-    inputData.drop(label, axis=1, inplace=True)
+    if label in inputData.columns: inputData.drop(label, axis=1, inplace=True)
     
-    feature_columns = inputData.drop(notFeatures,axis=1).columns.values
-    features        = inputData.drop(notFeatures,axis=1).values
+    feature_columns = [colname for colname in inputData.columns if colname not in notFeatures]
+    print('\n\n','flux' in notFeatures, 'flux' in feature_columns, '\n\n')
+    features = inputData[feature_columns].values
     
     if verbose: print('Shape of Features Array is', features.shape)
     
@@ -141,77 +182,18 @@ def setup_features(dataRaw, label='flux', notFeatures=[], pipeline=None, verbose
     
     return collection
 
-def random_forest_wrapper(features, labels, n_trees, n_jobs, grad_boost=False, header='PCA', 
-                            core_num=0, samp_num=0, loss='quantile', learning_rate=0.1, 
-                            max_depth=3, subsample=1.0, full_output=False, verbose=False):
-    
-    print('Performing {} Random Forest'.format(header))
-    
-    features_ = features.copy()
-    labels_   = labels.copy()
-    
-    if grad_boost:
-        rgr = xgb.XGBRegressor( max_depth = max_depth, 
-                                learning_rate = learning_rate, 
-                                n_estimators = n_trees, 
-                                silent = not verbose, 
-                                n_jobs = n_jobs)
-        
-        # objective='reg:linear', booster='gbtree', 
-        # gamma=0, min_child_weight=1, max_delta_step=0, subsample=1,
-        # colsample_bytree=1, colsample_bylevel=1, reg_alpha=0, reg_lambda=1,
-        # scale_pos_weight=1, base_score=0.5, RANDOM_STATE=0, seed=None,
-        # missing=None
-        
-        features, testX, labels, testY  = train_test_split(features_, labels_, TEST_SIZE=0.25)
-    else: 
-        rgr = RandomForestRegressor(    n_estimators  = n_trees      ,
-                                        n_jobs        = n_jobs       ,
-                                        oob_score     = True         ,
-                                        warm_start    = True         ,
-                                        verbose       = verbose      )
-    
-    if verbose: print('Feature Shape: {}\nLabel Shape: {}'.format(features.shape, labels.shape))
-    
-    if verbose: start=time()
-    
-    rgr.fit(features, labels)
-    
-    rgr_oob = r2_score(testY, rgr.predict(testX)) if grad_boost else rgr.oob_score_ 
-    rgr_Rsq = r2_score(labels_, rgr.predict(features_))
-    
-    test_label = {True:'Test R^2', False:'OOB'}
-    
-    if verbose: print('{} Pretrained Random Forest:\n\t{} Score: \
-                       {:.3f}%\n\tTrain R^2 score: {:.3f}%\
-                       \n\tRuntime:   {:.3f} seconds'.format(header, test_label[grad_boost], 
-                                                              rgr_oob*100, rgr_Rsq*100, time()-start))
-    
-    output_savename = 'randForest_{}_approach_{}trees_{}resamp_{}core.save'.format(header, n_trees, samp_num, core_num)
-    print('Storing New File to {}'.format(output_savename))
-    joblib.dump(rgr, output_savename)
-    
-    if full_output: return rgr
-
-if n_jobs == 1: print('WARNING: You are only using 1 core!')
-
-# Check if requested to complete more than one operatiion
-#   if so delete old instances
-
-files_in_directory = glob('./*')
-
 # ## Load CSVs data
-flux_normalized       = ['fluxerr', 'bg_flux', 'sigma_bg_flux', 'flux']
+tobe_flux_normalized = ['fluxerr', 'bg_flux', 'sigma_bg_flux', 'flux']
 spitzerCalNotFeatures = ['flux', 'fluxerr', 'dn_peak', 'xycov', 't_cernox', 'xerr', 'yerr', 'sigma_bg_flux']
-spitzerCalFilename    = 'pmap_ch2_0p1s_x4_rmulti_s3_7.csv' if sp_fname == '' else sp_fname
+spitzerCalFilename = 'pmap_ch2_0p1s_x4_rmulti_s3_7.csv' if data_set_fname == '' else data_set_fname
 
-spitzerCalRawData     = pd.read_csv(spitzerCalFilename)
+spitzerCalRawData = pd.read_csv(spitzerCalFilename)
 
-for key in flux_normalized:
-    spitzerCalRawData[key]  = spitzerCalRawData[key] / np.median(spitzerCalRawData['flux'].values)
+for key in tobe_flux_normalized:
+    spitzerCalRawData[key] = spitzerCalRawData[key] / np.median(spitzerCalRawData['flux'].values)
 
-spitzerCalRawData['bmjd_err']       = np.median(0.5*np.diff(spitzerCalRawData['bmjd']))
-spitzerCalRawData['np_err']         = np.sqrt(spitzerCalRawData['yerr'])
+spitzerCalRawData['bmjd_err'] = np.median(0.5*np.diff(spitzerCalRawData['bmjd']))
+spitzerCalRawData['np_err'] = np.sqrt(spitzerCalRawData['yerr'])
 
 for colname in spitzerCalRawData.columns:
     if 'err' not in colname.lower() and ('pix' in colname.lower() or 'pld' in colname.lower()):
@@ -221,21 +203,28 @@ start = time()
 print("Transforming Data ", end=" ")
 
 operations = []
-header = 'GBR' if do_gbr else 'RFI' if do_rfi else 'STD'
+# header = 'GBR' if do_gbr else 'RFI' if do_rfi else 'STD'
 
-pipe  = Pipeline(operations) if len(operations) else None
+pipe = Pipeline(operations) if len(operations) else None
 
-features, labels, pipe_fitted = setup_features( dataRaw       = spitzerCalRawData, 
-                                                pipeline      = pipe, 
-                                                verbose       = verbose,
-                                                resample      = False,
-                                                returnAll     = True)
+not_features_now = []
+for feat_name in spitzerCalNotFeatures:
+    if feat_name in spitzerCalRawData.columns:
+        not_features_now.append(feat_name)
+
+features, labels, pipe_fitted = setup_features( dataRaw = spitzerCalRawData, 
+                                                pipeline = pipe, 
+                                                verbose = verbose,
+                                                notFeatures = not_features_now,
+                                                resample = False,
+                                                returnAll = True)
 
 print('END OF BIG COPY PASTE')
+
 print('BEGIN NEW HyperParameter Optimization.')
 
 from sklearn.metrics import r2_score
-
+from sklearn.utils import shuffle
 
 ''' NALU: Nearual Arithmentic Logical Unit
         
@@ -296,29 +285,16 @@ def generate_dataset(size=10000, op='sum', n_features=2):
     
     return X, Y
 
+def median_sub_nan(thingy):
+    thingy[np.isnan(thingy)] = np.median(thingy[~np.isnan(thingy)])
+    return thingy
+
 if __name__ == "__main__":
-    from tqdm import tqdm
-    from argparse import ArgumentParser
-    
-    ap = ArgumentParser()
-    
-    ap.add_argument('-id', '--import_dir', type=str, required=True, help='The tensorflow ckpt save file')
-    ap.add_argument('-ed', '--export_dir', type=str, required=False, default='nalu_tf_save_dir/saves_warm_start_{}'.format(time()), help='The tensorflow ckpt save file')
-    ap.add_argument('-nnl', '--n_nalu_layers', type=int, required=False, default=1, help='Whether to use 1 (default), 2, or ... N NALU layers.')
-    ap.add_argument('-nnn', '--n_nalu_neurons', type=int, required=False, default=1, help='How many features on the second NALU layer')
-    ap.add_argument('-ne', '--n_epochs', type=int, required=False, default=200, help='Number of N_EPOCHS to train the network with.')
-    ap.add_argument('-nc', '--n_classes', type=int, required=False, default=1, help='n_classes == 1 for Regression (default); > 1 for Classification.')
-    ap.add_argument('-bs', '--batch_size', type=int, required=False, default=32, help='Batch size: number of samples per batch.')
-    ap.add_argument('-lr', '--learning_rate', type=float, required=False, default=1e-3, help='Learning rate: how fast the optimizer moves up/down the gradient.')
-    ap.add_argument('-ts', '--test_size', type=float, required=False, default=0.75, help='How much to split the train / test ratio')
-    ap.add_argument('-rs', '--random_state', type=int, required=False, default=42, help='Integer value to initialize train/test splitting randomization')
-    
-    args = vars(ap.parse_args())
-    
+    N_FEATURES = features.shape[-1]
     IMPORT_DIR = args['import_dir']
     EXPORT_DIR = args['export_dir']
     N_NALU_LAYERS = args['n_nalu_layers']
-    N_NALU_NEURONS = args['n_nalu_neurons']
+    N_NALU_NEURONS = args['n_nalu_neurons'] if args['n_nalu_neurons'] > 0 else N_FEATURES
     N_CLASSES = args['n_classes'] # = 1 for regression
     TEST_SIZE = args['test_size']
     RANDOM_STATE = args['random_state']
@@ -328,22 +304,39 @@ if __name__ == "__main__":
     BATCH_SIZE = args['batch_size']
     
     WS_TIME = IMPORT_DIR.split('/')[1].split('_')[1]
-    EXPORT_DIR = EXPORT_DIR + '_WS{}_nnl{}_nnn{}_nc{}_bs{}_lr{}_ne{}_ts{}_rs{}/'.format(WS_TIME, N_NALU_LAYERS, N_NALU_NEURONS, N_CLASSES, 
-                                                                                        BATCH_SIZE, LEARNING_RATE, N_EPOCHS, TEST_SIZE, RANDOM_STATE)
+    
+    EXPORT_DIR = EXPORT_DIR + '_WS{}_nnl{}_nnn{}_nc{}_bs{}_lr{}_ne{}_ts{}_rs{}_PP{}_PCA{}/'.format(WS_TIME, N_NALU_LAYERS, N_NALU_NEURONS, N_CLASSES, 
+                                                                                                    BATCH_SIZE, LEARNING_RATE, N_EPOCHS, TEST_SIZE, RANDOM_STATE, 
+                                                                                                    {True:1, False:0}[DO_PP], {True:1, False:0}[DO_PCA])
     
     print("Saving models to path: {}".format(EXPORT_DIR))
     
     idx_train, idx_test = train_test_split(np.arange(labels.size), test_size=TEST_SIZE, random_state=RANDOM_STATE)
-    X_data, Y_data = features[idx_train], labels[idx_train][:,None]
     
-    N_FEATURES = X_data.shape[-1]
+    ''' PCA Requires Standard Scaling
+            Here we Standard Scale, and then immediate PCA transform, simultaneously
+    '''
+    features_in = PCA().fit_transform(StandardScaler().fit_transform(features)) if do_pca else features.copy()
+    
+    ''' Because PCA requires standard scaling, let's save some CPUs by ignoring this pre-processing
+    '''
+    if do_pp: features_in = MinMaxScaler().fit_transform(features_in)
+    
+    X_data, Y_data = features_in[idx_train], labels[idx_train][:,None]
+    
     LAST_BIT = X_data.shape[0]-BATCH_SIZE*(X_data.shape[0]//BATCH_SIZE)
     
     # Force integer number of batches total by dropping last "<BATCH_SIEZ" number of samples
     X_data_use = X_data[:-LAST_BIT].copy()
     Y_data_use = Y_data[:-LAST_BIT].copy()
     
-    N_FEATURES = X_data.shape[-1]
+    output_dict = {}
+    output_dict['loss'] = np.zeros(N_EPOCHS)
+    output_dict['accuracy'] = np.zeros(N_EPOCHS)
+    output_dict['R2_train'] = np.zeros(N_EPOCHS)
+    output_dict['R2_test'] = np.zeros(N_EPOCHS)
+    output_dict['chisq_train'] = np.zeros(N_EPOCHS)
+    output_dict['chisq_test'] = np.zeros(N_EPOCHS)
     
     with tf.device("/cpu:0"):
         # tf.reset_default_graph()
@@ -382,8 +375,10 @@ if __name__ == "__main__":
             i = 0
             gts = 0
             
+            # reshuffle the indices every epoch to avoid 
+            idx_shuffle = shuffle(np.arange(X_data_use.size))
             while i < len(X_data_use):
-                xs, ys = X_data_use[i:i+BATCH_SIZE], Y_data_use[i:i+BATCH_SIZE]
+                xs, ys = X_data_use[idx_shuffle][i:i+BATCH_SIZE], Y_data_use[idx_shuffle][i:i+BATCH_SIZE]
                 
                 _, ys_pred, l = sess.run([train_op, Y_pred, loss], 
                         feed_dict={X: xs, Y_true: ys})
@@ -393,20 +388,35 @@ if __name__ == "__main__":
                 
                 i += BATCH_SIZE
             
-            ytest_pred = Y_pred.eval(feed_dict={X: features[idx_test]})
+            ytest_pred = Y_pred.eval(feed_dict={X: features_in[idx_test]})
+            
             test_r2 = r2_score(labels[idx_test][:,None], ytest_pred)
             # print("Test R2 Score: {}".format(test_r2_score))
             
             acc = gts/len(Y_data_use)
             train_r2 = r2_score(ys, ys_pred)
-            print('epoch {}, loss: {:.5}, accuracy: {:.5}, Batch R2: {:.5}, Test R2: {:.5}'.format(ep, l, acc, train_r2, test_r2))
             
-            file_name = "model_epoch{}_l{:.5}_a{:.5}_BatchR2-{:.5}_TestR2-{:.5}.ckpt".format(ep, l, acc, train_r2, test_r2)
+            print('epoch {}, loss: {:.5}, accuracy: {:.5}, Batch R2: {:.5}, Test R2: {:.5}'.format( ep, l, acc, train_r2, test_r2))
+            
+            output_dict['loss'][ep] = l
+            output_dict['accuracy'][ep] = acc
+            output_dict['R2_train'][ep] = train_r2
+            output_dict['R2_test'][ep] = test_r2
+            output_dict['chisq_train'][ep] = chisq(ys.flatten(), ys_pred.flatten(), spitzerCalRawData['fluxerr'][i:i+BATCH_SIZE])
+            output_dict['chisq_test'][ep] = chisq(labels[idx_test], ytest_pred.flatten(), spitzerCalRawData['fluxerr'][idx_test])
+            
+            file_name = 'model_epoch{}_l{:.5}_a{:.5}_BatchR2-{:.5}_TestR2-{:.5}.ckpt'.format(ep, l, acc, train_r2, test_r2))
+            
             save_path = saver.save(sess, EXPORT_DIR + file_name)
-            # print("Model saved in path: %s" % save_path)
         
         ep = '_FINAL'
+        file_name = 'model_epoch{}_l{:.5}_a{:.5}_BatchR2-{:.5}_TestR2-{:.5}.ckpt'.format(ep, l, acc, train_r2, test_r2))
         
-        file_name = "model_epoch{}_l{:.5}_a{:.5}_BatchR2-{:.5}_TestR2-{:.5}.ckpt".format(ep, l, acc, train_r2, test_r2)
         save_path = saver.save(sess, EXPORT_DIR + file_name)
+        
         print("Model saved in path: {}".format(save_path))
+        
+        try:
+            pd.DataFrame(output_dict, index=range(N_EPOCHS)).to_csv(EXPORT_DIR+ "model_loss_acc_BatchR2_TestR2_DataFrame.csv")
+        except Exception as e:
+            print('DataFrame to CSV broke because', str(e))

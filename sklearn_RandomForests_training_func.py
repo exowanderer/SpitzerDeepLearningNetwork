@@ -1,20 +1,32 @@
+from argparse import ArgumentParser
+from datetime import datetime
+time_now = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+ap = ArgumentParser()
+ap.add_argument('-ns' , '--n_resamp'    , required=False, type=int , default=0    , help="Number of resamples to perform (GBR=1; No Resamp=0).")
+ap.add_argument('-nt' , '--n_trees'     , required=False, type=int , default=100  , help="Number of trees in the forest.")
+ap.add_argument('-c'  , '--core'        , required=False, type=int , default=0    , help="Which Core to Use GBR only Uses 1 Core at a time.")
+ap.add_argument('-pp' , '--pre_process' , required=False, type=bool, default=True , help="Flag whether to use StandardScaler to pre-process the data.")
+ap.add_argument('-std', '--do_std'      , required=False, type=bool, default=False, help="Use Standard Random Forest Regression.")
+ap.add_argument('-pca', '--do_pca'      , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with PCA preprocessing.")# nargs='?', const=True, 
+ap.add_argument('-ica', '--do_ica'      , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with ICA preprocessing.")
+ap.add_argument('-rfi', '--do_rfi'      , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with PCA preprocessing.")
+ap.add_argument('-gbr', '--do_gbr'      , required=False, type=bool, default=False, help="Use Gradient Boosting Regression with PCA preprocessing.")
+ap.add_argument('-rs' , '--random_state', required=False, type=int , default=42   , help="Seed for random state with which to reinitialize a specific instance.")
+ap.add_argument('-pdb', '--pdb_stop'    , required=False, type=bool, default=False, help="Stop the trace at the end with pdb.set_trace().")
+ap.add_argument('-nj' , '--n_jobs'      , required=False, type=int , default=-1   , help="Number of cores to use Default:-1.")
+ap.add_argument('-df' , '--data_file'   , required=False, type=str , default=''   , help="The csv file with the Spitzer Calibration Information.")
+ap.add_argument('-v'  , '--verbose'     , required=False, type=str2bool, nargs='?', default=False, help="Whether to print out lots of things or just a few things")
+
 try:
-    from argparse import ArgumentParser
-    ap = ArgumentParser()
-    ap.add_argument('-ns' , '--n_resamp'    , required=False, type=int , default=0    , help="Number of resamples to perform (GBR=1; No Resamp=0).")
-    ap.add_argument('-nt' , '--n_trees'     , required=False, type=int , default=100  , help="Number of trees in the forest.")
-    ap.add_argument('-c'  , '--core'        , required=False, type=int , default=0    , help="Which Core to Use GBR only Uses 1 Core at a time.")
-    ap.add_argument('-pp' , '--pre_process' , required=False, type=bool, default=True , help="Flag whether to use StandardScaler to pre-process the data.")
-    ap.add_argument('-std', '--do_std'      , required=False, type=bool, default=False, help="Use Standard Random Forest Regression.")
-    ap.add_argument('-pca', '--do_pca'      , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with PCA preprocessing.")# nargs='?', const=True, 
-    ap.add_argument('-ica', '--do_ica'      , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with ICA preprocessing.")
-    ap.add_argument('-rfi', '--do_rfi'      , required=False, type=bool, default=False, help="Use Standard Random Forest Regression with PCA preprocessing.")
-    ap.add_argument('-gbr', '--do_gbr'      , required=False, type=bool, default=False, help="Use Gradient Boosting Regression with PCA preprocessing.")
-    ap.add_argument('-rs' , '--random_state', required=False, type=int , default=42   , help="Seed for random state with which to reinitialize a specific instance.")
-    ap.add_argument('-pdb', '--pdb_stop'    , required=False, type=bool, default=False, help="Stop the trace at the end with pdb.set_trace().")
-    ap.add_argument('-nj' , '--n_jobs'      , required=False, type=int , default=-1   , help="Number of cores to use Default:-1.")
-    ap.add_argument('-df' , '--data_file'   , required=False, type=str , default=''   , help="The csv file with the Spitzer Calibration Information.")
-    ap.add_argument('-v'  , '--verbose'     , required=False, type=bool, default=False, help="Whether to print out lots of things or just a few things")
     args = vars(ap.parse_args())
     
     n_resamp= args['n_resamp']
@@ -51,13 +63,6 @@ except Exception as e:
     n_jobs      = -1
     sp_fname    = ''
     verbose     = True
-
-# if do_gbr and n_resamp in [0,1]:
-#     print("WARNING: Gradient Boosting can only use 1 core.")
-#     print('\tInstead of resampling inside the function; call this package `n_resamp` times')
-#     print('\t in `n_resamp` screens or terminals.')
-#     print('\n**Forcing** `n_resamp = 1`')
-#     n_resamp = 1
 
 import pandas as pd
 import numpy as np
