@@ -347,9 +347,12 @@ if __name__ == "__main__":
             gts = 0
             
             # reshuffle the indices every epoch to avoid 
-            idx_shuffle = shuffle(np.arange(X_data_use.size))
+            X_data_use, Y_data_use = shuffle(X_data_use, Y_data_use)
+            
+            # for k in range(N_EPOCHS):
+            #     batch_now = range(k*N_EPOCHS, (k+1)*N_EPOCHS)
             while i < len(X_data_use):
-                xs, ys = X_data_use[idx_shuffle][i:i+BATCH_SIZE], Y_data_use[idx_shuffle][i:i+BATCH_SIZE]
+                xs, ys = X_data_use[i:i+BATCH_SIZE], Y_data_use[i:i+BATCH_SIZE]
                 
                 _, ys_pred, l = sess.run([train_op, Y_pred, loss], 
                         feed_dict={X: xs, Y_true: ys})
@@ -368,14 +371,14 @@ if __name__ == "__main__":
             train_r2 = r2_score(ys, ys_pred)
             
             print('epoch {}, loss: {:.5}, accuracy: {:.5}, Batch R2: {:.5}, Test R2: {:.5}'.format( ep, l, acc, train_r2, test_r2))
-            
+            """
             output_dict['loss'][ep] = l
             output_dict['accuracy'][ep] = acc
             output_dict['R2_train'][ep] = train_r2
             output_dict['R2_test'][ep] = test_r2
             output_dict['chisq_train'][ep] = chisq(ys.flatten(), ys_pred.flatten(), spitzerCalRawData['fluxerr'][i:i+BATCH_SIZE])
             output_dict['chisq_test'][ep] = chisq(labels[idx_test], ytest_pred.flatten(), spitzerCalRawData['fluxerr'][idx_test])
-            
+            """
             file_name = 'model_epoch{}_l{:.5}_a{:.5}_BatchR2-{:.5}_TestR2-{:.5}.ckpt'.format(ep, l, acc, train_r2, test_r2))
             
             save_path = saver.save(sess, EXPORT_DIR + file_name)
@@ -386,8 +389,10 @@ if __name__ == "__main__":
         save_path = saver.save(sess, EXPORT_DIR + file_name)
         
         print("Model saved in path: {}".format(save_path))
-        
+        """
         try:
             pd.DataFrame(output_dict, index=range(N_EPOCHS)).to_csv(EXPORT_DIR+ "model_loss_acc_BatchR2_TestR2_DataFrame.csv")
         except Exception as e:
             print('DataFrame to CSV broke because', str(e))
+        """
+
