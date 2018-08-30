@@ -286,6 +286,8 @@ for colname in spitzerCalRawData.columns:
     if 'err' not in colname.lower() and ('pix' in colname.lower() or 'pld' in colname.lower()):
         spitzerCalRawData[colname+'_err'] = spitzerCalRawData[colname] * spitzerCalRawData['fluxerr']
 
+spitzer_cal_features, spitzer_cal_labels = setup_features_basic(spitzerCalRawData[['flux']+spitzerCalKeepFeatures])
+
 start = time()
 print("Transforming Data ", end=" ")
 
