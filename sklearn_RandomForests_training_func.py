@@ -89,8 +89,7 @@ from glob                     import glob
 from time import time
 start0 = time()
 
-def setup_features(dataRaw, label='flux', notFeatures=[], pipeline=None, verbose=False, resample=False, returnAll=None):
-    
+def setup_features_full(dataRaw, label='flux', notFeatures=[], pipeline=None, verbose=False, resample=False, returnAll=None):
     """Example function with types documented in the docstring.
 
         For production level usage: All scaling and transformations must be done 
@@ -109,7 +108,6 @@ def setup_features(dataRaw, label='flux', notFeatures=[], pipeline=None, verbose
             https://github.com/ExoWanderer/
 
     """
-    
     if isinstance(dataRaw,str):
         dataRaw = pd.read_csv(filename)
     elif isinstance(dataRaw, dict):
@@ -119,7 +117,6 @@ def setup_features(dataRaw, label='flux', notFeatures=[], pipeline=None, verbose
     
     # WHY IS THIS ALLOWED TO NOT HAVE PARENTHESES?
     # assert isinstance(dataRaw, pd.DataFrame), 'The input must be a Pandas DataFrame or Dictionary with Equal Size Entries'
-    
     inputData = dataRaw.copy()
     
     # PLDpixels = pd.DataFrame({key:dataRaw[key] for key in dataRaw.columns if 'pix' in key})
@@ -128,15 +125,10 @@ def setup_features(dataRaw, label='flux', notFeatures=[], pipeline=None, verbose
     PLDnorm             = np.sum(np.array(inputData[pixCols]),axis=1)
     inputData[pixCols]  = (np.array(inputData[pixCols]).T / PLDnorm).T
     
-    # # Overwrite the PLDpixels entries with the normalized version
-    # for key in dataRaw.columns:
-    #     if key in PLDpixels.columns:
-    #         inputData[key] = PLDpixels[key]
-    #
     # Assign the labels
     n_PLD   = len([key for key in dataRaw.keys() if 'err' not in colname.lower() and ('pix' in key.lower() or 'pld' in key.lower())])
     
-    input_labels  = [colname for colname in dataRaw.columns if colname not in notFeatures and 'err' not in colname.lower()]
+    input_labels = [colname for colname in dataRaw.columns if colname not in notFeatures and 'err' not in colname.lower()]
     errors_labels = [colname for colname in dataRaw.columns if colname not in notFeatures and 'err'     in colname.lower()]
     
     # resampling_inputs = ['flux', 'xpos', 'ypos', 'xfwhm', 'yfwhm', 'bg_flux', 'bmjd', 'np'] + ['pix{}'.format(k) for k in range(1,10)]
@@ -154,13 +146,15 @@ def setup_features(dataRaw, label='flux', notFeatures=[], pipeline=None, verbose
     else:
         inputData = pd.DataFrame({colname:dataRaw[colname] for colname in input_labels})
     
-    labels  = inputData[label].values
+    if label in inputData.keys():
+        labels = inputData[label]
+        # explicitly remove the label
+        inputData.drop(label, axis=1, inplace=True)
+    else:
+        labels = np.ones(len(inputData))
     
-    # explicitly remove the label
-    inputData.drop(label, axis=1, inplace=True)
-    
-    feature_columns = inputData.drop(notFeatures,axis=1).columns.values
-    features        = inputData.drop(notFeatures,axis=1).values
+    feature_columns = inputData.drop(notFeatures,axis=1).columns
+    features = inputData[feature_columns]# inputData.drop(notFeatures,axis=1)
     
     if verbose: print('Shape of Features Array is', features.shape)
     
@@ -184,6 +178,30 @@ def setup_features(dataRaw, label='flux', notFeatures=[], pipeline=None, verbose
     
     return collection
 
+def setup_features_basic(dataRaw, label='flux', notFeatures=[], pipeline=None, verbose=False, resample=False, returnAll=None):
+    inputData = dataRaw.copy()
+    
+    pixCols = [colname for colname in inputData.columns if 'pix' in colname.lower() or 'pld' in colname.lower()]
+    
+    input_labels = [colname for colname in dataRaw.columns if colname not in notFeatures and 'err' not in colname.lower()]
+    input_labels = sorted(input_labels)
+    inputData = pd.DataFrame({colname:dataRaw[colname] for colname in input_labels})
+    
+    PLDnorm             = np.sum(np.array(inputData[pixCols]),axis=1)
+    inputData[pixCols]  = (np.array(inputData[pixCols]).T / PLDnorm).T
+    
+    if label in inputData.keys():
+        labels = pd.DataFrame(inputData[label], columns=[label])
+        
+        # explicitly remove the label
+        inputData.drop(label, axis=1, inplace=True)
+    else:
+        labels = np.ones(len(inputData))
+    
+    features = inputData.drop(notFeatures,axis=1)
+    
+    return features, labels
+
 def random_forest_wrapper(features, labels, n_trees, n_jobs, grad_boost=False, header='PCA', 
                             core_num=0, samp_num=0, loss='quantile', learning_rate=0.1, 
                             max_depth=3, subsample=1.0, full_output=False, verbose=False):
@@ -194,13 +212,6 @@ def random_forest_wrapper(features, labels, n_trees, n_jobs, grad_boost=False, h
     labels_   = labels.copy()
     
     if grad_boost:
-        # rgr = xgb.XGBRegressor( n_estimators  = n_trees      ,
-        #                         loss          = loss         ,
-        #                         learning_rate = learning_rate,
-        #                         subsample     = subsample    ,
-        #                         warm_start    = True         ,
-        #                         verbose       = verbose      )
-        
         rgr = xgb.XGBRegressor( max_depth = max_depth, 
                                 learning_rate = learning_rate, 
                                 n_estimators = n_trees, 
@@ -251,22 +262,25 @@ if n_jobs == 1: print('WARNING: You are only using 1 core!')
 files_in_directory = glob('./*')
 
 # ## Load CSVs data
-flux_normalized       = ['fluxerr', 'bg_flux', 'sigma_bg_flux', 'flux']
-spitzerCalNotFeatures = ['flux', 'fluxerr', 'dn_peak', 'xycov', 't_cernox', 'xerr', 'yerr', 'sigma_bg_flux']
-spitzerCalFilename    = 'pmap_ch2_0p1s_x4_rmulti_s3_7.csv' if sp_fname == '' else sp_fname
+flux_normalized = ['fluxerr', 'bg_flux', 'sigma_bg_flux', 'flux']
+spitzerCalNotFeatures = ['flux', 'fluxerr', 'bmjd', 'dn_peak', 'xycov', 't_cernox', 'xerr', 'yerr', 'sigma_bg_flux']
+spitzerCalFilename = 'pmap_ch2_0p1s_x4_rmulti_s3_7.csv' if sp_fname == '' else sp_fname
 
-spitzerCalRawData     = pd.read_csv(spitzerCalFilename)
+spitzerCalKeepFeatures = ['xpos', 'ypos', 'np', 'xfwhm', 'yfwhm', 'bg_flux', #'bmjd', 
+                            'pix1', 'pix2', 'pix3', 'pix4', 'pix5', 'pix6', 'pix7', 'pix8', 'pix9']
+
+spitzerCalRawData = pd.read_csv(spitzerCalFilename)
 
 for key in flux_normalized:
-    spitzerCalRawData[key]  = spitzerCalRawData[key] / np.median(spitzerCalRawData['flux'].values)
+    spitzerCalRawData[key] = spitzerCalRawData[key] / np.median(spitzerCalRawData['flux'].values)
 
-# spitzerCalRawData['fluxerr']        = spitzerCalRawData['fluxerr']      / np.median(spitzerCalRawData['flux'].values)
-# spitzerCalRawData['bg_flux']        = spitzerCalRawData['bg_flux']      / np.median(spitzerCalRawData['flux'].values)
-# spitzerCalRawData['sigma_bg_flux']  = spitzerCalRawData['sigma_bg_flux']/ np.median(spitzerCalRawData['flux'].values)
-# spitzerCalRawData['flux']           = spitzerCalRawData['flux']         / np.median(spitzerCalRawData['flux'].values)
+spitzerCalRawData['fluxerr'] = spitzerCalRawData['fluxerr'] / np.median(spitzerCalRawData['flux'].values)
+spitzerCalRawData['bg_flux'] = spitzerCalRawData['bg_flux'] / np.median(spitzerCalRawData['flux'].values)
+spitzerCalRawData['sigma_bg_flux'] = spitzerCalRawData['sigma_bg_flux'] / np.median(spitzerCalRawData['flux'].values)
+spitzerCalRawData['flux'] = spitzerCalRawData['flux'] / np.median(spitzerCalRawData['flux'].values)
 
-spitzerCalRawData['bmjd_err']       = np.median(0.5*np.diff(spitzerCalRawData['bmjd']))
-spitzerCalRawData['np_err']         = np.sqrt(spitzerCalRawData['yerr'])
+spitzerCalRawData['bmjd_err'] = np.median(0.5*np.diff(spitzerCalRawData['bmjd']))
+spitzerCalRawData['np_err'] = np.sqrt(spitzerCalRawData['yerr'])
 
 for colname in spitzerCalRawData.columns:
     if 'err' not in colname.lower() and ('pix' in colname.lower() or 'pld' in colname.lower()):
@@ -281,17 +295,17 @@ header = 'GBR' if do_gbr else 'RFI' if do_rfi else 'STD'
 if do_pp: 
     print('Adding Standard Scaler Preprocessing to Pipeline')
     operations.append(('std_sclr', StandardScaler()))
-    header     += '_SS'
+    header += '_SS'
 
 if do_pca: 
     print('Adding PCA to Pipeline')
     operations.append(('pca', PCA(whiten=True)))
-    header     += '_PCA'
+    header += '_PCA'
 
 if do_ica:
     print('Adding ICA to Pipeline')
     operations.append(('ica', FastICA(whiten=True)))
-    header     += '_ICA'
+    header += '_ICA'
 
 pipe  = Pipeline(operations) if len(operations) else None
 
@@ -303,7 +317,7 @@ if do_rfi:
     
     print('Computing Importances for RFI Random Forest')
     importances = np.loadtxt(importance_filename)
-    indices     = np.argsort(importances)[::-1]
+    indices = np.argsort(importances)[::-1]
     
     imp_sum = np.cumsum(importances[indices])
     nImportantSamples = np.argmax(imp_sum >= 0.95) + 1
@@ -314,7 +328,7 @@ if 'core' in args.keys():
     core = args['core']
 elif do_gbr:
     from glob import glob
-    output_name    = 'randForest_{}_approach_{}trees_{}resamp_{}core.save'.format(header, n_trees, samp_num, core_num)
+    output_name = 'randForest_{}_approach_{}trees_{}resamp_{}core.save'.format(header, n_trees, samp_num, core_num)
     existing_saves = glob('randForest_{}_approach_{}trees_{}resamp_*core.save'.format(header, n_trees, n_resamp))
     
     core_nums = []
@@ -331,6 +345,7 @@ if n_resamp == 0:
     features, labels, pipe_fitted = setup_features( dataRaw       = spitzerCalRawData, 
                                                     pipeline      = pipe, 
                                                     verbose       = verbose,
+                                                    notFeatures   = spitzerCalNotFeatures,
                                                     resample      = False,
                                                     returnAll     = True)
     
@@ -350,7 +365,7 @@ if n_resamp == 0:
 for k_samp in tqdm(range(n_resamp),total=n_resamp):
     if k_samp == 0: print('Starting Resampling')
     
-    features, labels, pipe_fitted = setup_features( dataRaw       = spitzerCalRawData, 
+    spitzer_cal_features, spitzer_cal_labels, pipe_fitted = setup_features( dataRaw       = spitzerCalRawData, 
                                                     pipeline      = pipe   ,
                                                     verbose       = verbose,
                                                     resample      = True   ,
@@ -428,3 +443,30 @@ def predict_with_scaled_transformer(dataRaw, notFeatures=None, transformer=None,
     
     return features_trnsfrmd, labels_scaled
 '''
+if pmap_xo3b:
+    from glob import glob
+    
+    xo3b_files = glob('XO3_Data/XO3_r464*.csv')
+    
+    for fname in xo3b_files:
+        if 'NALU' in fname:                     
+            xo3b_files.remove(fname)     
+    
+    for fname in xo3b_files:
+        if 'NALU' in fname:                     
+            xo3b_files.remove(fname)     
+    
+    for fname in tqdm(xo3b_files, total=len(xo3b_files)):
+        key = fname.split('_')[-1].split('.')[0]
+        
+        med_flux = np.median(xo3b_data[key]['raw']['flux'].values)
+        
+        xo3b_data[key] = {'raw':pd.read_csv(fname)}
+        features, labels = setup_features_basic( dataRaw=val['raw'][['flux']+spitzerCalKeepFeatures])
+        
+        xo3b_data[key]['raw']['fluxerr'] = xo3b_data[key]['raw']['fluxerr'] / med_flux
+        xo3b_data[key]['raw']['bg_flux'] = xo3b_data[key]['raw']['bg_flux'] / med_flux
+        xo3b_data[key]['raw']['flux'] = xo3b_data[key]['raw']['flux'] / med_flux
+        xo3b_data[key]['features'] = features
+        xo3b_data[key]['labels'] = labels
+        xo3b_data[key]['pmap'] = xgb_rgr.predict(features)

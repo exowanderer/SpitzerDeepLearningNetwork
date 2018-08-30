@@ -1,5 +1,5 @@
 from multiprocessing import set_start_method, cpu_count
-set_start_method('forkserver')
+# set_start_method('forkserver')
 
 # import os
 # os.environ["OMP_NUM_THREADS"] = str(cpu_count())  # or to whatever you want

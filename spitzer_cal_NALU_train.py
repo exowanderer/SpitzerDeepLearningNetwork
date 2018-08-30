@@ -25,6 +25,8 @@ def str2bool(v):
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
+def chisq(y_true, y_pred, y_error): return np.sum(((y_true-y_pred)/y_error)**2.)
+
 ap = ArgumentParser()
 
 ap.add_argument('-d', '--directory', type=str, required=False, default='nalu_tf_save_dir/saves_{}'.format(time_now), help='The tensorflow ckpt save file.')
@@ -75,26 +77,33 @@ minmax_scaler_transformer_raw = joblib.load('pmap_minmax_scaler_transformer_from
 minmax_scaler_transformer_pca = joblib.load('pmap_minmax_scaler_transformer_from_pca_16features.joblib.save')
 '''
 
-print("Loading raw and transformed features to DataFrame csv.")
-labels_df = pd.read_csv('pmap_raw_labels_and_errors.csv')
+label_n_error_filename = 'pmap_raw_labels_and_errors.csv'
+print("Loading in raw labels and errors from {}".format(label_n_error_filename))
+labels_df = pd.read_csv(label_n_error_filename)
 
 labels = labels_df['Flux'].values[:,None]
 labels_err = labels_df['Flux_err'].values
 
-if DO_PP and DO_PCA: features_input = pd.read_csv('pmap_full_pipe_transformed_16features.csv').drop(['idx'], axis=1).values
-elif DO_PP: features_input = pd.read_csv('pmap_minmax_transformed_from_raw_16features.csv').drop(['idx'], axis=1).values
-elif DO_PCA: features_input = pd.read_csv('pmap_pca_transformed_from_stdscaler_16features.csv').drop(['idx'], axis=1).values
-else: features_input = pd.read_csv('pmap_raw_16features.csv').drop(['idx'], axis=1).values
+# Feature File Switch
+if DO_PP and DO_PCA:
+    features_input_filename = 'pmap_full_pipe_transformed_16features.csv'
+elif DO_PP:
+    features_input_filename = 'pmap_minmax_transformed_from_raw_16features.csv'
+elif DO_PCA:
+    features_input_filename = 'pmap_pca_transformed_from_stdscaler_16features.csv'
+else:
+    features_input_filename = 'pmap_raw_16features.csv'
 
-def chisq(y_true, y_pred, y_error): return np.sum(((y_true-y_pred)/y_error)**2.)
+print("Loading in pre-processed features from {}".format(features_input_filename))
+features_input = pd.read_csv(feature_input_filename).drop(['idx'], axis=1).values
 
 def nalu(input_layer, num_outputs):
     """ Neural Arithmetic Logic Unit tesnorflow layer
-
+    
     Arguments:
     input_layer - A Tensor representing previous layer
     num_outputs - number of ouput units 
-
+    
     Returns:
     A tensor representing the output of NALU
     """
@@ -235,20 +244,18 @@ if __name__ == "__main__":
             gts = 0
             
             # Reshuffle features and labels together
-            # X_data_use, Y_data_use = shuffle(X_data_use, Y_data_use)
+            X_data_use, Y_data_use = shuffle(X_data_use, Y_data_use)
             
-            # for k in range(N_EPOCHS):
-            #     batch_now = range(k*N_EPOCHS, (k+1)*N_EPOCHS)
-            while i < len(X_data_use):
-                xs, ys = X_data_use[i:i+BATCH_SIZE], Y_data_use[i:i+BATCH_SIZE]
+            for k in tqdm(range(len(X_data_use)//BATCH_SIZE)):
+                batch_now = range(k*BATCH_SIZE, (k+1)*BATCH_SIZE)
+                # xs, ys = X_data_use[i:i+BATCH_SIZE], Y_data_use[i:i+BATCH_SIZE]
+                xs, ys = X_data_use[batch_now], Y_data_use[batch_now]
                 
                 _, ys_pred, l = sess.run([train_op, Y_pred, loss], 
                         feed_dict={X: xs, Y_true: ys})
                 
                 # calculate number of correct predictions from batch
                 gts += np.sum(np.isclose(ys, ys_pred, atol=1e-4, rtol=1e-4)) 
-                
-                i += BATCH_SIZE
             
             ytest_pred = Y_pred.eval(feed_dict={X: features_input[idx_test]})
             if np.isnan(ytest_pred).any(): ytest_pred = median_sub_nan(ytest_pred)
