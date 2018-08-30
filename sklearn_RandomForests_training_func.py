@@ -287,24 +287,27 @@ for colname in spitzerCalRawData.columns:
         spitzerCalRawData[colname+'_err'] = spitzerCalRawData[colname] * spitzerCalRawData['fluxerr']
 
 
-import xgboost as xgb
-# import lightgbm as lgb
 
 spitzer_cal_features, spitzer_cal_labels = setup_features_basic(spitzerCalRawData[['flux']+spitzerCalKeepFeatures])
 
 idx_train, idx_test = train_test_split(np.arange(spitzer_cal_labels.size), test_size=0.75, random_state=42)
 
-xgb_rgr = xgb.XGBRegressor(max_depth=5, learning_rate=0.05, n_estimators=10000, silent=True,
-                                objective='reg:linear', booster='gbtree', n_jobs=-1,random_state=42)
-# lgb_rgr = lgb.LGBMRegressor(boosting_type='gbdt', num_leaves=31, max_depth=5, learning_rate=0.1, n_estimators=10000)
+do_xgb = True
+if do_xgb:
+    import xgboost as xgb
+    xgb_rgr = xgb.XGBRegressor(max_depth=5, learning_rate=0.05, n_estimators=10000, silent=True,
+                                    objective='reg:linear', booster='gbtree', n_jobs=-1,random_state=42)
+    start = time()
+    xgb_rgr.fit(spitzer_cal_features.iloc[idx_train], spitzer_cal_labels.iloc[idx_train])
+    print('XGB took {:.3f} minutes'.format((time()-start)/60))
 
-start = time()
-xgb_rgr.fit(spitzer_cal_features.iloc[idx_train], spitzer_cal_labels.iloc[idx_train])
-print('XGB took {:.3f} minutes'.format((time()-start)/60))
-
-# start = time()
-# lgb_rgr.fit(spitzer_cal_features.iloc[idx_train], spitzer_cal_labels.iloc[idx_train], eval_set=(spitzer_cal_features.iloc[idx_test], spitzer_cal_labels.iloc[idx_test]))
-# print('XGB took {:.3f} minutes'.format((time()-start)/60))
+do_lgb = False
+if do_lgb:
+    import lightgbm as lgb
+    lgb_rgr = lgb.LGBMRegressor(boosting_type='gbdt', num_leaves=31, max_depth=5, learning_rate=0.1, n_estimators=10000)
+    start = time()
+    lgb_rgr.fit(spitzer_cal_features.iloc[idx_train], spitzer_cal_labels.iloc[idx_train], eval_set=(spitzer_cal_features.iloc[idx_test], spitzer_cal_labels.iloc[idx_test]))
+    print('LGB took {:.3f} minutes'.format((time()-start)/60))
 
 print("Transforming Data ", end=" ")
 
