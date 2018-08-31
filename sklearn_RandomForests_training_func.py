@@ -457,7 +457,7 @@ def predict_with_scaled_transformer(dataRaw, notFeatures=None, transformer=None,
     labels          = inputData['flux'].values
     
     # **PCA Preconditioned Random Forest Approach**
-    if verbose: print('Performing PCA')
+    if verbose: print('Performincg PCA')
     
     labels_scaled     = label_scaler.transform(labels[:,None]).ravel() if label_scaler   is not None else labels
     features_scaled   = feature_scaler.transform(features)             if feature_scaler is not None else features
@@ -492,3 +492,24 @@ if pmap_xo3b:
         xo3b_data[key]['features'] = features
         xo3b_data[key]['labels'] = labels
         xo3b_data[key]['pmap'] = xgb_rgr.predict(features)
+
+
+
+"""
+        6-11-2016 - 6-11-2017
+        
+        right eye: "right OD"; "left OS"
+                sphere: -2.50
+                cylinder: -1.75
+                axis = 5
+        
+        left eye (OS)
+                sphere: -1.75
+                cylinder: -0.75
+                axis = 180
+        
+        dpd: left eye = 31.5
+             right eye = 31.5
+             together = 63
+
+"""
