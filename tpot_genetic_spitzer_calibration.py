@@ -3,6 +3,7 @@ from tpot import TPOTRegressor
 from functools import partial
 
 import pandas as pd
+import numpy as np
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -16,10 +17,11 @@ from time import time
 
 
 n_skip = 100 # testing on smaller data set
-features = pd.read_csv('pmap_raw_16features.csv')[::n_skip]
-labels = pd.read_csv('pmap_raw_labels_and_errors.csv')[::n_skip]
+features = pd.read_csv('pmap_raw_16features.csv').iloc[::n_skip]
+labels = pd.read_csv('pmap_raw_labels_and_errors.csv')['Flux'].iloc[::n_skip]
 
 #Split training, testing, and validation data
+idx = np.arange(labels.values.size)
 training_indices, validation_indices = train_test_split(idx, test_size=0.20)
 
 #Let Genetic Programming find best ML model and hyperparameters
