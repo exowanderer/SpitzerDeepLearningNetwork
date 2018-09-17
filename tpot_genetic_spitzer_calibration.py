@@ -25,10 +25,12 @@ tpot = TPOTRegressor(generations=10, verbosity=2, n_jobs=-1)
 
 start = time()
 tpot.fit(features[training_indices], labels[training_indices])
-print('Full TPOT operation took {:.1f} minutes'.format((time() - start)/60))
+print('Full TPOT regressor operation took {:.1f} minutes'.format((time() - start)/60))
 
 #Score the accuracy
-tpot.score(features[validation_indices].values, labels[validation_indices])
+
+print('Best pipeline test accuracy: {:.3f}'.format(
+  tpot.score(features[validation_indices].values, labels[validation_indices])))
 
 #Export the generated code
 tpot.export('spitzer_calibration_tpot_best_pipeline.py')
