@@ -235,8 +235,9 @@ joblib.dump(minmax_scaler_transformer_pca, 'pmap_minmax_scaler_transformer_from_
 print("Saving raw and transformed features to DataFrame csv.")
 label_errs = spitzerCalRawData['fluxerr'].values / np.median(spitzerCalRawData['flux'])
 
+# Output flux labels
 flux_pmap_save_name = 'pmap_raw_labels_and_errors.csv'
-flux_dict = dict('Flux'=labels, 'Flux_err'=label_errs)
+flux_dict = dict(Flux=labels, Flux_err=label_errs)
 flux_df = pd.DataFrame(flux_dict, index=range(n_samples))
 flux_df.to_csv(flux_pmap_save_name, index=True, index_label='idx')
 
