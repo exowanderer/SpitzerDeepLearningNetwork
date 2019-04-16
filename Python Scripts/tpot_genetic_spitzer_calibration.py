@@ -1,7 +1,5 @@
 from tpot import TPOTRegressor
 
-from functools import partial
-
 import pandas as pd
 import numpy as np
 
