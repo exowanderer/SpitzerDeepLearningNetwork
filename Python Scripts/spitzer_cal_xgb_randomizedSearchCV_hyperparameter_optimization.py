@@ -202,20 +202,27 @@ files_in_directory = glob('./*')
 
 # ## Load CSVs data
 flux_normalized       = ['fluxerr', 'bg_flux', 'sigma_bg_flux', 'flux']
-spitzerCalNotFeatures = ['flux', 'fluxerr', 'dn_peak', 'xycov', 't_cernox', 'xerr', 'yerr', 'sigma_bg_flux']
-spitzerCalFilename    = 'pmap_ch2_0p1s_x4_rmulti_s3_7.csv' if sp_fname == '' else sp_fname
+spitzerCalNotFeatures = ['flux', 'fluxerr', 'dn_peak', 'xycov', 't_cernox', 
+                            'xerr', 'yerr', 'sigma_bg_flux']
+
+if sp_fname == '':spitzerCalFilename    = '../pmap_ch2_0p1s_x4_rmulti_s3_7.csv'
 
 spitzerCalRawData     = pd.read_csv(spitzerCalFilename)
 
 for key in flux_normalized:
     spitzerCalRawData[key]  = spitzerCalRawData[key] / np.median(spitzerCalRawData['flux'].values)
 
-spitzerCalRawData['bmjd_err']       = np.median(0.5*np.diff(spitzerCalRawData['bmjd']))
+diff_time = np.diff(spitzerCalRawData['bmjd'])
+spitzerCalRawData['bmjd_err']       = np.median(0.5*diff_time)
 spitzerCalRawData['np_err']         = np.sqrt(spitzerCalRawData['yerr'])
 
+fluxerr_ = spitzerCalRawData['fluxerr']
 for colname in spitzerCalRawData.columns:
-    if 'err' not in colname.lower() and ('pix' in colname.lower() or 'pld' in colname.lower()):
-        spitzerCalRawData[colname+'_err'] = spitzerCalRawData[colname] * spitzerCalRawData['fluxerr']
+    err_in_colname = 'err' not in colname.lower()
+    pix_or_pld = 'pix' in colname.lower() or 'pld' in colname.lower()
+    if err_in_colname and pix_or_pld:
+        col_val_ = spitzerCalRawData[colname]
+        spitzerCalRawData[colname+'_err'] = col_val_ * fluxerr_
 
 start = time()
 print("Transforming Data ", end=" ")
@@ -257,20 +264,39 @@ random_state = 42
 scoring = {'rmse': make_scorer(rmse, greater_is_better=False), 'r2':make_scorer(r2_score)} 
 
 max_depth = 3
-learning_rate=0.1
+learning_rate = 0.1
 n_estimators = 100
 
 xgb_rgr = xgb.XGBRegressor( max_depth = max_depth, 
                             learning_rate = learning_rate, 
                             n_estimators = n_estimators, 
-                            silent = silent, 
+                            silent = False, 
                             n_jobs = n_jobs)
 
 max_depths = np.arange(2,15)
 n_estimators_s = np.array([base*10**power for base in [1,2,5] for power in np.arange(1,5)])
 learning_rates = np.array([base*10.**power for base in np.float32([1,2,5]) for power in np.arange(-4,0)])
 
-xgb_param_dict = dict(max_depth=max_depths, learning_rate=learning_rates, n_estimators=n_estimators_s)
+xgb_param_dict = dict(max_depth = max_depths, 
+                      learning_rate = learning_rates, 
+                      n_estimators = n_estimators_s)
+
+do_xgb = True
+if do_xgb:
+    # rscv = RandomizedSearchCV(xgb_rgr, xgb_param_dict,
+    #                             n_iter = n_iters,
+    #                             scoring = scoring,
+    #                             n_jobs = n_jobs,
+    #                             cv = cv,
+    #                             verbose = verbose,
+    #                             random_state = random_state,
+    #                             return_train_score = 'warn',
+    #                             refit = False,
+    #                             pre_dispatch=1)
+
+    xgb_rgr.fit(features_, labels_)
+
+    joblib.dump(xgb_rgr, 'spitzer_cal_XGB_fit_direct_results.joblib.save')
 
 do_rscv = False
 if do_rscv:
@@ -338,7 +364,7 @@ if do_tpot:
     joblib.dump({'idx_train':idx_train, 'idx_test':idx_test}, train_test_save_filename)
     joblib.dump(tpot_rgr, tpot_save_filename)
 
-''' NALU: Nearual Arithmentic Logical Unit
+''' NALU: Neural Arithmentic Logical Unit
         
         NALU uses memory and logic gates to train a unique TF layer to modify the gradients of the weights.
         This seems to be very smilar to a LSTM layer, but for a non-RNN.

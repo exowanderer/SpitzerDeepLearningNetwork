@@ -8,27 +8,31 @@ from argparse import ArgumentParser
 from datetime import datetime
 time_now = datetime.utcnow().strftime("%Y%m%d%H%M%S")
 
-def str2bool(v):
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
-        return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
-
 ap = ArgumentParser()
 
-ap.add_argument('-d', '--directory', type=str, required=False, default='nalu_tf_save_dir/saves_{}'.format(time_now), help='The tensorflow ckpt save file')
-ap.add_argument('-nnl', '--n_nalu_layers', type=int, required=False, default=1, help='Whether to use 1 (default), 2, or ... N NALU layers.')
-ap.add_argument('-nnn', '--n_nalu_neurons', type=int, required=False, default=0, help='How many features on the second NALU layer')
-ap.add_argument('-ne', '--n_epochs', type=int, required=False, default=200, help='Number of N_EPOCHS to train the network with.')
-ap.add_argument('-nc', '--n_classes', type=int, required=False, default=1, help='n_classes == 1 for Regression (default); > 1 for Classification.')
-ap.add_argument('-bs', '--batch_size', type=int, required=False, default=32, help='Batch size: number of samples per batch.')
-ap.add_argument('-lr', '--learning_rate', type=float, required=False, default=1e-3, help='Learning rate: how fast the optimizer moves up/down the gradient.')
-ap.add_argument('-ts', '--test_size', type=float, required=False, default=0.75, help='How much to split the train / test ratio')
-ap.add_argument('-rs', '--random_state', type=int, required=False, default=42, help='Integer value to initialize train/test splitting randomization')
-ap.add_argument('-v', '--verbose', type=str2bool, nargs='?', required=False, default=False, help='Whether to set verbosity = True or False (default)')
-ap.add_argument('-ds', '--data_set', type=str, required=False, default='', help='The csv file containing the data to predict with')
+ap.add_argument('-d', '--directory', type=str, 
+	default='nalu_tf_save_dir/saves_{}'.format(time_now), 
+	help='The tensorflow ckpt save file')
+ap.add_argument('-nnl', '--n_nalu_layers', type=int, default=1, 
+	help='Whether to use 1 (default), 2, or ... N NALU layers.')
+ap.add_argument('-nnn', '--n_nalu_neurons', type=int, default=0, 
+	help='How many features on the second NALU layer')
+ap.add_argument('-ne', '--n_epochs', type=int, default=200, 
+	help='Number of N_EPOCHS to train the network with.')
+ap.add_argument('-nc', '--n_classes', type=int, default=1, 
+	help='n_classes == 1 for Regression (default); > 1 for Classification.')
+ap.add_argument('-bs', '--batch_size', type=int, default=32, 
+	help='Batch size: number of samples per batch.')
+ap.add_argument('-lr', '--learning_rate', type=float, default=1e-3, 
+	help='Learning rate: how fast the optimizer moves up/down the gradient.')
+ap.add_argument('-ts', '--test_size', type=float, default=0.75,
+	help='How much to split the train / test ratio')
+ap.add_argument('-rs', '--random_state', type=int, default=42, 
+	help='Integer value to initialize train/test splitting randomization')
+ap.add_argument('-v', '--verbose', action="store_true",
+	help='Whether to set verbosity = True or False (default)')
+ap.add_argument('-ds', '--data_set', type=str, default='', 
+	help='The csv file containing the data to predict with')
 
 try:
     args = vars(ap.parse_args())
@@ -73,8 +77,6 @@ from glob                     import glob
 
 from time import time
 start0 = time()
-
-
 
 print('BEGIN NEW HyperParameter Optimization.')
 from sklearn.metrics import r2_score
@@ -146,7 +148,10 @@ if __name__ == "__main__":
     
     EXPORT_DIR = args['directory']
     N_NALU_LAYERS = args['n_nalu_layers']
-    N_NALU_NEURONS = args['n_nalu_neurons'] if args['n_nalu_neurons'] > 0 else N_FEATURES
+
+    N_NALU_NEURONS = N_FEATURES
+    if args['n_nalu_neurons'] > 0: N_NALU_NEURONS = args['n_nalu_neurons']
+
     N_CLASSES = args['n_classes'] # = 1 for regression
     TEST_SIZE = args['test_size']
     RANDOM_STATE = args['random_state']
@@ -188,7 +193,8 @@ if __name__ == "__main__":
         # Setup NALU Layers
         nalu_layers = {'nalu0':nalu(X,N_NALU_NEURONS)}
         for kn in range(1, N_NALU_LAYERS):
-            nalu_layers['nalu{}'.format(kn)] = nalu(nalu_layers['nalu{}'.format(kn-1)], N_NALU_NEURONS)
+        	prev_layer =  nalu_layers['nalu{}'.format(kn-1)]
+            nalu_layers['nalu{}'.format(kn)] = nalu(prev_layer, N_NALU_NEURONS)
         
         Y_pred = nalu(nalu_layers['nalu{}'.format(N_NALU_LAYERS-1)], N_CLASSES) # N_CLASSES = 1 for regression
         
