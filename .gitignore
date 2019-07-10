@@ -63,3 +63,7 @@ distribute-*.tar.gz
 *checkpoint.ipynb
 XO3*
 pmap*
+*.png
+*.joblib.save
+*.csv
+*.sh

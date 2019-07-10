@@ -259,9 +259,10 @@ n_iters = 100
 n_jobs = -1
 cv = 10
 verbose = True # for RSCV
-silent = True # for XGB
+silent = False # for XGB
 random_state = 42
-scoring = {'rmse': make_scorer(rmse, greater_is_better=False), 'r2':make_scorer(r2_score)} 
+scoring = {'rmse': make_scorer(rmse, greater_is_better=False), 
+            'r2':make_scorer(r2_score)} 
 
 max_depth = 3
 learning_rate = 0.1
